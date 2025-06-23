@@ -1,0 +1,33 @@
+export default {
+  WHITE: '#fff',
+  BLACK: '#202020',
+
+  BACKGROUND: '#F9F9F9',
+  BORDER: '#e4e9f2',
+
+  PRIMARY: '#0670DB',
+  PRIMARY_TRSP: 'rgba(47,131,186, 0.15)',
+
+  SECONDARY: '#202020',
+  SECONDARY_TRSP: 'rgba(32,32,32, 0.50)',
+
+  SUCCESS: '#04E474',
+  SUCCESS_TRSP: 'rgba(4,228,116, 0.15)',
+
+  DANGER: '#FF2833',
+  DANGER_TRSP: 'rgba(255,40,51, 0.15)',
+
+  WARNING: '#FC7C1C',
+  WARNING_TRSP: 'rgba(252,124,28, 0.15)',
+
+  INFO: '#3298F9',
+  INFO_TRSP: 'rgba(50,152,249, 0.15)',
+
+  GREY: '#848484',
+  GREY_TRSP: 'rgba(132,132,132, 0.15)',
+
+  LIGHT: '#C4C4C4',
+  LIGHT_TRSP: 'rgba(196,196,196, 0.15)',
+
+  EVA_SUCCESS: '#57aa23',
+};

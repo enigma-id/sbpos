@@ -1,11 +1,15 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const {
+  wrapWithReanimatedMetroConfig,
+} = require('react-native-reanimated/metro-config');
+// Ambil config default dulu
+const defaultConfig = getDefaultConfig(__dirname);
 
-/**
- * Metro configuration
- * https://reactnative.dev/docs/metro
- *
- * @type {import('@react-native/metro-config').MetroConfig}
- */
-const config = {};
+// Tambahkan konfigurasi khusus (jika ada)
+const customConfig = {};
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+// Gabungkan semua config
+const finalConfig = mergeConfig(defaultConfig, customConfig);
+
+// Bungkus dengan konfigurasi Reanimated
+module.exports = wrapWithReanimatedMetroConfig(finalConfig);
