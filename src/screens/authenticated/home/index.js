@@ -12,6 +12,7 @@ import useKioskMode from '../../../components/utils/useKiosK';
 const HomeScreen = () => {
   const router = useNavigation();
   const SalesSession = useSelector(state => state.SalesSession);
+  const Session = useSelector(state => state.Auth?.session);
   const { summary } = useSession();
 
   const [pin, setPin] = useState('');
@@ -53,64 +54,101 @@ const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          <View
-            style={[
-              Styles.flex,
-              Styles.mt3,
-              Styles.alignItemsCenter,
-              Styles.justifyContentCenter,
-              { flex: 1, flexWrap: 'wrap' },
-            ]}
-          >
-            <Card
+          {Session?.user?.is_supervisor === 1 ? (
+            <View
               style={[
-                Styles.card,
                 Styles.flex,
+                Styles.mt3,
                 Styles.alignItemsCenter,
                 Styles.justifyContentCenter,
+                { flex: 1, flexWrap: 'wrap' },
               ]}
-              onPress={() => router.navigate('home/webview')}
             >
-              <Icon name="bag-add-outline" style={Styles.cardIcon} />
-              <Text style={Styles.cartTitle}>Pesan Bahan Baku</Text>
-            </Card>
-            <Card
+              <Card
+                style={[
+                  Styles.card,
+                  Styles.flex,
+                  Styles.alignItemsCenter,
+                  Styles.justifyContentCenter,
+                ]}
+                onPress={() => router.navigate('home/webview')}
+              >
+                <Icon name="bag-add-outline" style={Styles.cardIcon} />
+                <Text style={Styles.cartTitle}>Pesan Bahan Baku</Text>
+              </Card>
+              <Card
+                style={[
+                  Styles.card,
+                  Styles.flex,
+                  Styles.alignItemsCenter,
+                  Styles.justifyContentCenter,
+                ]}
+                onPress={handlePOSPress}
+              >
+                <Icon name="storefront-outline" style={Styles.cardIcon} />
+                <Text style={Styles.cartTitle}>Point of Sales</Text>
+              </Card>
+              <Card
+                style={[
+                  Styles.card,
+                  Styles.flex,
+                  Styles.alignItemsCenter,
+                  Styles.justifyContentCenter,
+                ]}
+                onPress={() => router.navigate('session')}
+              >
+                <Icon name="receipt-outline" style={Styles.cardIcon} />
+                <Text style={Styles.cartTitle}>Penjualan</Text>
+              </Card>
+              <Card
+                style={[
+                  Styles.card,
+                  Styles.flex,
+                  Styles.alignItemsCenter,
+                  Styles.justifyContentCenter,
+                ]}
+                onPress={() => router.navigate('profile')}
+              >
+                <Icon name="person-outline" style={Styles.cardIcon} />
+                <Text style={Styles.cartTitle}>Akun</Text>
+              </Card>
+            </View>
+          ) : (
+            <View
               style={[
-                Styles.card,
                 Styles.flex,
+                Styles.mt3,
                 Styles.alignItemsCenter,
                 Styles.justifyContentCenter,
+                { flex: 1, flexWrap: 'wrap' },
               ]}
-              onPress={handlePOSPress}
             >
-              <Icon name="storefront-outline" style={Styles.cardIcon} />
-              <Text style={Styles.cartTitle}>Point of Sales</Text>
-            </Card>
-            <Card
-              style={[
-                Styles.card,
-                Styles.flex,
-                Styles.alignItemsCenter,
-                Styles.justifyContentCenter,
-              ]}
-              onPress={() => router.navigate('session')}
-            >
-              <Icon name="receipt-outline" style={Styles.cardIcon} />
-              <Text style={Styles.cartTitle}>Penjualan</Text>
-            </Card>
-            <Card
-              style={[
-                Styles.card,
-                Styles.flex,
-                Styles.alignItemsCenter,
-                Styles.justifyContentCenter,
-              ]}
-              onPress={() => router.navigate('profile')}
-            >
-              <Icon name="person-outline" style={Styles.cardIcon} />
-              <Text style={Styles.cartTitle}>Akun</Text>
-            </Card>
-          </View>
+              <Card
+                style={[
+                  Styles.card,
+                  Styles.flex,
+                  Styles.alignItemsCenter,
+                  Styles.justifyContentCenter,
+                ]}
+                onPress={handlePOSPress}
+              >
+                <Icon name="storefront-outline" style={Styles.cardIcon} />
+                <Text style={Styles.cartTitle}>Point of Sales</Text>
+              </Card>
+              <Card
+                style={[
+                  Styles.card,
+                  Styles.flex,
+                  Styles.alignItemsCenter,
+                  Styles.justifyContentCenter,
+                ]}
+                onPress={() => router.navigate('profile')}
+              >
+                <Icon name="person-outline" style={Styles.cardIcon} />
+                <Text style={Styles.cartTitle}>Akun</Text>
+              </Card>
+            </View>
+          )}
         </View>
       </Content>
 

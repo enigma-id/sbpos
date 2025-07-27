@@ -1,7 +1,14 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useCallback } from 'react';
-import { Image, Modal, Pressable, TouchableOpacity, View } from 'react-native';
+import {
+  Image,
+  Modal,
+  Pressable,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useSelector } from 'react-redux';
 
 import { Button, Icon, Input, Text } from '@ui-kitten/components';
@@ -16,7 +23,6 @@ import { renderCaption, renderTitle } from '../../components/utils/form';
 import useAuth from '../../services/auth/hook';
 import { Container, Content } from '../../components/screen';
 import useKioskMode from '../../components/utils/useKiosK';
-import { $login } from '../../svcAxios/auth/action';
 
 const SigninScreen = () => {
   const FormState = useSelector(state => state?.Form);
@@ -32,23 +38,14 @@ const SigninScreen = () => {
   const [password, setPassword] = React.useState('');
   const [secureTextEntry, setSecureTextEntry] = React.useState(true);
 
-  const $handleSubmit = useCallback(async () => {
+  const $handleSubmit = async () => {
     const payload = {
       username: username,
       password: password,
     };
 
-    // signin(payload);
-    const req = async () => {
-      try {
-        await $login(payload);
-      } catch (error) {
-        console.error('Login error:', error);
-      }
-    };
-
-    req();
-  }, []);
+    signin(payload);
+  };
 
   const toggleSecureEntry = () => {
     setSecureTextEntry(!secureTextEntry);
@@ -81,23 +78,6 @@ const SigninScreen = () => {
                 style={{ width: 240, height: 120 }}
               />
             </TouchableOpacity>
-          </View>
-          <View
-            style={[
-              Styles.px5,
-              Styles.py5,
-              {
-                backgroundColor: 'transparent',
-              },
-            ]}
-          >
-            <Text
-              category="h1"
-              allowFontScaling={false}
-              style={[Styles.px5, Styles.textWhite, Styles.textStart]}
-            >
-              Sign In
-            </Text>
           </View>
 
           <View style={[Styles.px5, Styles.py5]}>
@@ -155,14 +135,14 @@ const SigninScreen = () => {
                 Lupa password ?
               </Text>
             </Pressable> */}
-            <TouchableOpacity
+            <Button
               style={[Styles.mt5]}
               onPress={$handleSubmit}
               disabled={loginResult?.isLoading}
-              // status="primary"
+              status="primary"
             >
-              <Text>MASUK</Text>
-            </TouchableOpacity>
+              MASUK
+            </Button>
           </View>
         </View>
 

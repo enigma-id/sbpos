@@ -11,6 +11,7 @@ export const Styles = StyleSheet.create({
   },
   content: {
     width: DEVICE_WIDTH,
+    flex: 1,
   },
   // btn variant
   btnPrimary: {

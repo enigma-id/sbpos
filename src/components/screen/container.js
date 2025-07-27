@@ -13,7 +13,7 @@ const Container = props => {
       <SafeAreaView style={{ flex: 1 }}>
         <View
           style={{
-            ...Styles.container,
+            flex: 1,
             backgroundColor: colors.BACKGROUND,
           }}
         >

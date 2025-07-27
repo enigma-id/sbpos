@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React from 'react';
 import { Provider, useDispatch } from 'react-redux';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,11 +23,11 @@ import AppNavigator from './navigator';
 function Boot() {
   const dispatch = useDispatch();
 
-  React.useEffect(() => {
-    const boot = async () => {
-      await dispatch($config());
-    };
+  const boot = async () => {
+    await dispatch($config());
+  };
 
+  React.useEffect(() => {
     boot();
   }, []);
 

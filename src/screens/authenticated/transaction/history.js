@@ -2,16 +2,9 @@ import { View } from 'react-native';
 import React from 'react';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 
-import {
-  Divider,
-  Icon,
-  List,
-  ListItem,
-  Spinner,
-  Text,
-} from '@ui-kitten/components';
+import { Divider, Icon, List, ListItem, Text } from '@ui-kitten/components';
 
-import { Container, Loading } from '../../../components/screen';
+import { Container, EmptyScreen, Loading } from '../../../components/screen';
 import { currencyFormat, dateFormat } from '../../../components/utils/common';
 import { Styles } from '../../../components/theme/styles';
 import useSession from '../../../services/sales/session/hook';
@@ -40,7 +33,7 @@ const HistoryScreen = ({ route }) => {
 
   React.useEffect(() => {
     if (showResult.isSuccess) {
-      setData(showResult?.data?.data?.sales_orders);
+      setData(showResult?.data?.data?.sales_orders || []);
       setRefreshing(false);
     }
   }, [showResult]);
@@ -87,6 +80,7 @@ const HistoryScreen = ({ route }) => {
           renderItem={renderItem}
           refreshing={refreshing}
           onRefresh={handleRefresh}
+          ListEmptyComponent={() => <EmptyScreen />}
         />
       </View>
     </Container>

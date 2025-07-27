@@ -25,11 +25,13 @@ const useOrder = () => {
     } catch (error) {}
   };
 
-  const cancel = ({ id, payload }) => {
+  const cancel = async ({ id, payload }) => {
     try {
-      cancelMutation({ id, ...payload });
+      const result = await cancelMutation({ id, ...payload }).unwrap();
+      return result;
     } catch (error) {
       dispatch($failure(error));
+      throw error;
     }
   };
 

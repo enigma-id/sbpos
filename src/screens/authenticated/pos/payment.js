@@ -16,7 +16,7 @@ const PaymentScreen = props => {
 
   const payment = props?.route?.params?.method;
 
-  const { checkout, checkoutResult, method } = useCart();
+  const { checkout, checkoutResult } = useCart();
 
   const [paymentRef, setPaymentRef] = React.useState('');
   const [totalPaymentStr, setPaymentStr] = React.useState('');
@@ -47,11 +47,8 @@ const PaymentScreen = props => {
     setTotalPayment(total_payment);
   };
 
-  const handleSubmit = async () => {
-    if (isSubmitting) return;
-    setIsSubmitting(true);
-
-    const payload = {
+  const generatePayload = () => {
+    return {
       channel_id: Channel?.selectedChannel?.id,
       status: 'completed',
       payment_method_id: payment?.id === 'cash' ? 0 : payment?.id,
@@ -61,9 +58,15 @@ const PaymentScreen = props => {
       total_payment:
         payment?.id === 'cash' ? totalPayment || 0 : Cart?.subtotal || 0,
     };
+  };
 
-    // await checkout(payload);
-    method();
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    const payload = generatePayload();
+
+    await checkout(payload);
 
     setIsSubmitting(false);
   };

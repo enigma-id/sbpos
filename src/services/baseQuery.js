@@ -3,6 +3,7 @@ import { fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 // Base fetchBaseQuery
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: global.API_URL || 'https://api.envio.co.id/dev/pos',
+  // baseUrl: 'https://api.sukabread.com/pos',
   prepareHeaders: (headers, { getState }) => {
     const token = getState()?.Auth?.session?.token;
     headers.set('Accept', 'application/json');
@@ -10,19 +11,26 @@ const rawBaseQuery = fetchBaseQuery({
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
+
+    if (__DEV__) {
+      console.log(
+        '%c[RTKQ] Headers:',
+        'color: orange; font-weight: bold;',
+        Object.fromEntries(headers.entries()),
+      );
+    }
     return headers;
   },
 });
 
 // Custom baseQuery with dev logging
 export const baseQuery = async (args, api, extraOptions) => {
+  // const result = await rawBaseQuery(args, api, extraOptions);
   if (__DEV__) {
     const url = typeof args === 'string' ? args : args.url;
     const method = typeof args === 'object' ? args.method : undefined;
     const body = typeof args === 'object' ? args.body : undefined;
     const params = typeof args === 'object' ? args.params : undefined;
-
-    const result = await rawBaseQuery(args, api, extraOptions);
 
     console.log(
       '%c[RTKQ] URL: ' + url,
@@ -48,11 +56,11 @@ export const baseQuery = async (args, api, extraOptions) => {
         body,
       );
     }
-    console.log(
-      '%c[RTKQ] Response:',
-      'color: #fff; background: #6c757d; font-weight: bold; padding:2px 6px; border-radius:3px;',
-      result,
-    );
+    // console.log(
+    //   '%c[RTKQ] Response:',
+    //   'color: #fff; background: #5bc0de; font-weight: bold; padding:2px 6px; border-radius:3px;',
+    //   result,
+    // );
   }
   return rawBaseQuery(args, api, extraOptions);
 };

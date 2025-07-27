@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 
 import { resetCart } from './slice';
-import { useCheckoutMutation, useLazyGetMethodQuery } from './action';
+import { useCheckoutMutation, useGetMethodQuery } from './action';
 import { $failure } from '../form/action';
 import { useLazyGetCatalogDetailQuery } from '../catalog/action';
 import { clearSelectedChannel } from '../sales/channel/slice';
@@ -16,8 +16,7 @@ const useCart = catalog_id => {
   const SalesChannel = useSelector(state => state.SalesChannel);
 
   const [triggerDetail, detailResult] = useLazyGetCatalogDetailQuery();
-  const [triggerMethod, methodResult] = useLazyGetMethodQuery();
-  // const { data: method, isLoading, error } = useGetMethodQuery();
+  const { data: method, isLoading, error } = useGetMethodQuery();
   const [checkoutMutation, checkoutResult] = useCheckoutMutation();
 
   // Get all items in cart
@@ -43,22 +42,20 @@ const useCart = catalog_id => {
 
   const checkout = async data => {
     if (isCheckoutRunning.current) {
-      console.log('⛔ Prevented double checkout');
       return;
     }
 
-    console.log('⚡ Attempting checkout at', new Date().toISOString());
     isCheckoutRunning.current = true;
 
     try {
       const res = await checkoutMutation(data).unwrap();
 
-      // if (res?.status === 'success') {
-      //   dispatch(resetCart());
-      //   dispatch(clearSelectedChannel());
+      if (res?.status === 'success') {
+        dispatch(resetCart());
+        dispatch(clearSelectedChannel());
 
-      //   router.navigate('confirmation', { order: res?.data });
-      // }
+        router.navigate('confirmation', { order: res?.data });
+      }
     } catch (error) {
       dispatch($failure(error));
     } finally {
@@ -66,11 +63,11 @@ const useCart = catalog_id => {
     }
   };
 
-  const method = async () => {
-    try {
-      await triggerMethod().unwrap();
-    } catch (error) {}
-  };
+  // const method = async () => {
+  //   try {
+  //     await triggerMethod().unwrap();
+  //   } catch (error) {}
+  // };
 
   // Only trigger once on mount
   useEffect(() => {
@@ -89,12 +86,11 @@ const useCart = catalog_id => {
     isItemInCart,
     existingItem,
     existingIndex,
-    // paymentMethod: method?.data,
-    method,
-    methodResult,
+    paymentMethod: method?.data,
     checkout,
     checkoutResult,
     reset,
+    cartItems,
   };
 };
 

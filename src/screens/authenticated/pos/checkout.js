@@ -17,48 +17,30 @@ import { Container } from '../../../components/screen';
 import { DEVICE_WIDTH, Styles } from '../../../components/theme/styles';
 import { currencyFormat } from '../../../components/utils/common';
 import useCart from '../../../services/cart/hook';
-import useSession from '../../../services/sales/session/hook';
-import { useLazySummaryQuery } from '../../../services/sales/session/action';
 
 const CheckoutScreen = () => {
   const router = useNavigation();
   const Cart = useSelector(state => state?.Cart);
-  // const { paymentMethod, method, methodResult, reset } = useCart();
-  const [triggerSummary, summaryResult] = useLazySummaryQuery();
+  const { paymentMethod, reset } = useCart();
 
-  const hasCalled = React.useRef(false);
+  const [selectedMethodIndex, setSelectedMethodIndex] = React.useState(0);
 
-  // const [selectedMethodIndex, setSelectedMethodIndex] = React.useState(0);
+  const methodOptions = React.useMemo(() => {
+    const fromApi = paymentMethod ?? [];
+    return [{ id: 'cash', name: 'Tunai' }, ...fromApi];
+  }, [paymentMethod]);
 
-  // const methodOptions = React.useMemo(() => {
-  //   const fromApi = paymentMethod ?? [];
-  //   return [{ id: 'cash', name: 'Tunai' }, ...fromApi];
-  // }, [paymentMethod]);
+  const onPay = () => {
+    const selectedMethod = methodOptions[selectedMethodIndex];
 
-  // const onPay = () => {
-  //   const selectedMethod = methodOptions[selectedMethodIndex];
-
-  //   router.navigate('payment', {
-  //     method: selectedMethod,
-  //   });
-  // };
-
-  const req = async () => {
-    try {
-      await triggerSummary();
-    } catch (error) {}
+    router.navigate('payment', {
+      method: selectedMethod,
+    });
   };
-
-  React.useEffect(() => {
-    if (!hasCalled.current) {
-      req();
-      hasCalled.current = true;
-    }
-  }, []);
 
   return (
     <Container>
-      {/* <List
+      <List
         data={Cart?.items}
         ListHeaderComponent={() => (
           <View
@@ -136,14 +118,14 @@ const CheckoutScreen = () => {
                 </View>
               )}
             />
-            {item?.toppings &&
-              item?.toppings?.map(
+            {item?.additionals &&
+              item?.additionals?.map(
                 (t, i) =>
                   t?.quantity > 0 && (
                     <ListItem
                       onPress={() => router.navigate('cart', { catalog: item })}
                       key={i}
-                      style={[Styles.px6, Styles.py4, { paddingLeft: 60 }]}
+                      style={[Styles.px6, Styles.py4, { paddingLeft: 45 }]}
                       title={() => <Text category="h6">{t?.name}</Text>}
                       description={() => (
                         <Text category="c1">
@@ -181,52 +163,52 @@ const CheckoutScreen = () => {
           </View>
         )}
         ItemSeparatorComponent={Divider}
-        // ListFooterComponent={() => (
-        //   <View style={[Styles.mb5]}>
-        //     <View style={[Styles.px6, Styles.py4, Styles.mt5]}>
-        //       <Text
-        //         category="s2"
-        //         style={[
-        //           Styles.textUppercase,
-        //           Styles.textGrey,
-        //           { letterSpacing: 1, fontWeight: 'bold' },
-        //         ]}
-        //       >
-        //         Metode Pembayaran
-        //       </Text>
-        //     </View>
+        ListFooterComponent={() => (
+          <View style={[Styles.mb5]}>
+            <View style={[Styles.px6, Styles.py4, Styles.mt5]}>
+              <Text
+                category="s2"
+                style={[
+                  Styles.textUppercase,
+                  Styles.textGrey,
+                  { letterSpacing: 1, fontWeight: 'bold' },
+                ]}
+              >
+                Metode Pembayaran
+              </Text>
+            </View>
 
-        //     {methodOptions && methodOptions.length > 0 && (
-        //       <RadioGroup
-        //         selectedIndex={selectedMethodIndex}
-        //         onChange={index => setSelectedMethodIndex(index)}
-        //         style={[Styles.bgWhite]}
-        //       >
-        //         {methodOptions.map((method, index) => (
-        //           <Radio
-        //             status="primary"
-        //             key={index}
-        //             style={[
-        //               Styles.px6,
-        //               Styles.py4,
-        //               Styles.borderBottom,
-        //               { gap: 20, marginBottom: 0, marginTop: 0 },
-        //             ]}
-        //           >
-        //             {evaProps => (
-        //               <Text category="s1" style={{ fontWeight: 'bold' }}>
-        //                 {method?.name}
-        //               </Text>
-        //             )}
-        //           </Radio>
-        //         ))}
-        //       </RadioGroup>
-        //     )}
-        //   </View>
-        // )}
-      /> */}
+            {methodOptions && methodOptions.length > 0 && (
+              <RadioGroup
+                selectedIndex={selectedMethodIndex}
+                onChange={index => setSelectedMethodIndex(index)}
+                style={[Styles.bgWhite]}
+              >
+                {methodOptions.map((method, index) => (
+                  <Radio
+                    status="primary"
+                    key={index}
+                    style={[
+                      Styles.px6,
+                      Styles.py4,
+                      Styles.borderBottom,
+                      { gap: 20, marginBottom: 0, marginTop: 0 },
+                    ]}
+                  >
+                    {evaProps => (
+                      <Text category="s1" style={{ fontWeight: 'bold' }}>
+                        {method?.name}
+                      </Text>
+                    )}
+                  </Radio>
+                ))}
+              </RadioGroup>
+            )}
+          </View>
+        )}
+      />
 
-      {/* <View
+      <View
         style={[
           Styles.px6,
           Styles.bgWhite,
@@ -279,7 +261,7 @@ const CheckoutScreen = () => {
             </Button>
           </View>
         </View>
-      </View> */}
+      </View>
     </Container>
   );
 };

@@ -204,6 +204,21 @@ const Receipt = ({ data, onLoaded }) => {
             </View>
           </View>
 
+          {data?.payment_ref !== '' && (
+            <View
+              style={[Styles.flex, Styles.justifyContentBetween, Styles.pb2]}
+            >
+              <View>
+                <Text category="h5">REF</Text>
+              </View>
+              <View>
+                <Text category="h5" style={[Styles.textEnd]}>
+                  {data?.payment_ref}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {data?.total_payment - data?.total_charges > 0 ? (
             <View
               style={[Styles.flex, Styles.justifyContentBetween, Styles.pb2]}

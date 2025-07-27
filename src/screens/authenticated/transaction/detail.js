@@ -1,5 +1,5 @@
 import React from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 import Share from 'react-native-share';
 import { useSelector } from 'react-redux';
 
@@ -24,8 +24,13 @@ import {
 import { currencyFormat, dateFormat } from '../../../components/utils/common';
 import { usePrint } from '../../../components/utils/usePrint';
 import { renderCaption, renderTitle } from '../../../components/utils/form';
+import { CommonActions, useNavigation } from '@react-navigation/native';
 
 const DetailScreen = ({ route }) => {
+  const router = useNavigation();
+  const state = router.getState();
+
+  const Session = useSelector(state => state?.Auth?.session);
   const FormState = useSelector(state => state?.Form);
 
   const { id } = route?.params;
@@ -53,14 +58,6 @@ const DetailScreen = ({ route }) => {
       pin: pin,
     };
     cancel({ id, payload });
-
-    // cancel({ id, payload }).then(res => {
-    // if (res === true) {
-    //   setCancelModal(false);
-    //   setPin('');
-    //   show({ id });
-    // }
-    // });
   };
 
   React.useEffect(() => {
@@ -68,7 +65,17 @@ const DetailScreen = ({ route }) => {
   }, [id]);
 
   React.useEffect(() => {
-    console.log('Cancel Result:', cancelResult);
+    if (cancelResult?.isSuccess) {
+      setCancelModal(false);
+      setPin('');
+      const routes = state?.routes?.slice(0, -1);
+      router.dispatch(
+        CommonActions.reset({
+          index: routes.length - 1,
+          routes,
+        }),
+      );
+    }
   }, [cancelResult]);
 
   if (showResult.isLoading) {
@@ -109,7 +116,7 @@ const DetailScreen = ({ route }) => {
             title={() => <Text category="p2">Tanggal Transaksi</Text>}
             accessoryRight={() => (
               <Text style={[Styles.textEnd]} category="h5">
-                {dateFormat(data?.ordered_at, 'DD/MM/YYYY')}
+                {dateFormat(data?.ordered_at, 'DD/MM/YYYY HH:mm')}
               </Text>
             )}
           />
@@ -130,22 +137,38 @@ const DetailScreen = ({ route }) => {
           <ListItem
             disabled
             style={[Styles.px6]}
-            title={() => <Text category="p2">Total Transaksi</Text>}
+            title={() => <Text category="p2">Metode Pembayaran</Text>}
             accessoryRight={() => (
               <Text style={[Styles.textEnd]} category="h5">
-                {currencyFormat(data?.total_charges)}
+                {data?.payment_method?.name || 'CASH'}
               </Text>
             )}
           />
           <Divider />
 
+          {data?.payment_ref !== '' && (
+            <>
+              <ListItem
+                disabled
+                style={[Styles.px6]}
+                title={() => <Text category="p2">REF</Text>}
+                accessoryRight={() => (
+                  <Text style={[Styles.textEnd]} category="h5">
+                    {data?.payment_ref}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+
           <ListItem
             disabled
             style={[Styles.px6]}
-            title={() => <Text category="p2">Metode Pembayaran</Text>}
+            title={() => <Text category="p2">Total Transaksi</Text>}
             accessoryRight={() => (
               <Text style={[Styles.textEnd]} category="h5">
-                {data?.payment_method?.name || 'CASH'}
+                {currencyFormat(data?.total_charges)}
               </Text>
             )}
           />
@@ -217,6 +240,49 @@ const DetailScreen = ({ route }) => {
                   </View>
                 )}
               />
+              {item?.additionals?.length > 0 &&
+                item?.additionals?.map((addition, addIndex) => (
+                  <ListItem
+                    key={addIndex}
+                    disabled
+                    style={[Styles.px6]}
+                    title={() => (
+                      <Text category="h6">{addition?.catalog?.name}</Text>
+                    )}
+                    description={() => (
+                      <Text category="c2">
+                        @ {currencyFormat(addition?.unit_nett)}
+                      </Text>
+                    )}
+                    accessoryRight={() => (
+                      <View
+                        style={[
+                          Styles.flex,
+                          Styles.alignItemsCenter,
+                          Styles.justifyContentCenter,
+                        ]}
+                      >
+                        <View
+                          style={[
+                            Styles.bgNotification,
+                            Styles.me3,
+                            Styles.rounded3,
+                            Styles.alignItemsCenter,
+                            Styles.justifyContentCenter,
+                            { width: 25, height: 25 },
+                          ]}
+                        >
+                          <Text category="h5">{addition?.quantity}</Text>
+                        </View>
+                        <Text style={[Styles.textEnd]} category="h5">
+                          {currencyFormat(
+                            addition?.unit_nett * addition?.quantity,
+                          )}
+                        </Text>
+                      </View>
+                    )}
+                  />
+                ))}
               <Divider />
             </View>
           ))}
@@ -242,15 +308,17 @@ const DetailScreen = ({ route }) => {
             </Button>
           </View>
         </View>
-        <View style={{ marginTop: 12 }}>
-          <Button
-            size="small"
-            status="danger"
-            onPress={() => setCancelModal(true)}
-          >
-            BATALKAN TRANSAKSI
-          </Button>
-        </View>
+        {Session?.user?.is_supervisor === 1 && (
+          <View style={{ marginTop: 12 }}>
+            <Button
+              size="small"
+              status="danger"
+              onPress={() => setCancelModal(true)}
+            >
+              BATALKAN TRANSAKSI
+            </Button>
+          </View>
+        )}
       </View>
 
       <Modal

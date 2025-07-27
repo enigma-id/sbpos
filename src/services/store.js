@@ -1,14 +1,14 @@
-import {configureStore} from '@reduxjs/toolkit';
-import {persistStore, persistReducer} from 'redux-persist';
+import { configureStore } from '@reduxjs/toolkit';
+import { persistStore, persistReducer } from 'redux-persist';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import rootReducer from './reducer';
 
-import {authApi} from './auth/action';
-import {salesSessionApi} from './sales/session/action';
-import {salesOrderApi} from './sales/order/action';
-import {catalogApi} from './catalog/action';
-import {salesChannelApi} from './sales/channel/action';
-import {cartApi} from './cart/action';
+import { authApi } from './auth/action';
+import { salesSessionApi } from './sales/session/action';
+import { salesOrderApi } from './sales/order/action';
+import { catalogApi } from './catalog/action';
+import { salesChannelApi } from './sales/channel/action';
+import { cartApi } from './cart/action';
 
 const persistConfig = {
   key: 'root',
@@ -38,6 +38,7 @@ const apiMiddleware = [
 
 const store = configureStore({
   reducer: persistedReducer,
+  devTools: process.env.NODE_ENV !== 'production',
   middleware: getDefaultMiddleware =>
     getDefaultMiddleware({
       immutableCheck: false,
@@ -67,4 +68,4 @@ store.subscribe(() => {
 
 const persistor = persistStore(store);
 
-export {store, persistor};
+export { store, persistor };

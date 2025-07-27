@@ -1,6 +1,6 @@
-import {createApi} from '@reduxjs/toolkit/query/react';
-import {createAction} from '@reduxjs/toolkit';
-import {baseQuery} from '../baseQuery';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { createAction } from '@reduxjs/toolkit';
+import { baseQuery } from '../baseQuery';
 
 export const $reset = createAction('Auth/reset');
 export const $logout = createAction('Auth/signout');
@@ -10,6 +10,7 @@ export const authApi = createApi({
   baseQuery: baseQuery,
   endpoints: builder => ({
     login: builder.mutation({
+      fixedCacheKey: 'login',
       query: payload => ({
         url: '/auth/signin',
         method: 'POST',
@@ -22,13 +23,6 @@ export const authApi = createApi({
         method: 'GET',
       }),
     }),
-    resetPwd: builder.mutation({
-      query: payload => ({
-        url: '/auth/reset-password',
-        method: 'POST',
-        body: payload,
-      }),
-    }),
     update: builder.mutation({
       query: payload => ({
         url: '/auth/me',
@@ -39,9 +33,5 @@ export const authApi = createApi({
   }),
 });
 
-export const {
-  useLoginMutation,
-  useLazyGetUserQuery,
-  useResetPwdMutation,
-  useUpdateMutation,
-} = authApi;
+export const { useLoginMutation, useLazyGetUserQuery, useUpdateMutation } =
+  authApi;

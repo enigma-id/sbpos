@@ -1,7 +1,6 @@
 import { useDispatch } from 'react-redux';
 import {
   useLoginMutation,
-  useResetPwdMutation,
   useUpdateMutation,
   $reset,
   $logout,
@@ -10,13 +9,11 @@ import {
 
 import { $failure } from '../form/action';
 import { login, session } from './slice';
-import { ToastAndroid } from 'react-native';
 
 const useAuth = () => {
   const dispatch = useDispatch();
   const [loginMutation, loginResult] = useLoginMutation();
   const [triggerGetUser, getUserResult] = useLazyGetUserQuery();
-  const [resetMutation, resetResult] = useResetPwdMutation();
   const [updateMutation, updateResult] = useUpdateMutation();
 
   const signin = async data => {

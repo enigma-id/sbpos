@@ -15,9 +15,13 @@ const CartScreen = props => {
   const dispatch = useDispatch();
   const catalog = props?.route?.params?.catalog;
 
-  const { catalogDetail, isItemInCart, existingItem, existingIndex } = useCart(
-    catalog?.id,
-  );
+  const {
+    catalogDetail,
+    isItemInCart,
+    existingItem,
+    existingIndex,
+    cartItems,
+  } = useCart(catalog?.id);
 
   const [catalogData, setCatalogData] = React.useState({});
   const [quantity, setQuantity] = React.useState(0);
@@ -76,13 +80,28 @@ const CartScreen = props => {
       subtotal: getSubtotal(quantity, filteredAdditionals),
     };
 
+    // Kalau quantity <= 0 dan item memang sudah ada di cart, artinya mau hapus
+    const isDeleting = quantity <= 0 && isItemInCart;
+
     if (isItemInCart) {
       dispatch(changeItem({ key: existingIndex, catalog: formattedItem }));
     } else {
       dispatch(addItem(formattedItem));
     }
 
-    route.goBack();
+    const remainingItems = isDeleting
+      ? cartItems?.length - 1
+      : cartItems?.length + (isItemInCart ? 0 : 1);
+
+    // Navigasi
+    if (isDeleting && remainingItems <= 0) {
+      route.reset({
+        index: 1,
+        routes: [{ name: 'home' }, { name: 'catalog' }],
+      });
+    } else {
+      route.goBack();
+    }
   };
 
   return (

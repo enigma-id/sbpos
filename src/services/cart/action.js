@@ -7,18 +7,12 @@ export const cartApi = createApi({
   endpoints: builder => ({
     checkout: builder.mutation({
       query: payload => {
-        console.log('[CHECKOUT REQUEST]', payload);
         return {
           url: '/sales/order',
           method: 'POST',
           body: payload,
         };
       },
-      // query: payload => ({
-      //   url: '/sales/order',
-      //   method: 'POST',
-      //   body: payload,
-      // }),
     }),
     update: builder.mutation({
       query: ({ id, ...payload }) => ({
@@ -37,5 +31,5 @@ export const cartApi = createApi({
   }),
 });
 
-export const { useCheckoutMutation, useUpdateMutation, useLazyGetMethodQuery } =
+export const { useCheckoutMutation, useUpdateMutation, useGetMethodQuery } =
   cartApi;

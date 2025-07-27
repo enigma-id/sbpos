@@ -7,8 +7,10 @@ import {
   ActivityIndicator,
   Image,
   TouchableNativeFeedback,
+  TouchableOpacity,
 } from 'react-native';
 import { useSelector } from 'react-redux';
+import { useNavigation } from '@react-navigation/native';
 
 import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 import {
@@ -23,13 +25,13 @@ import {
   Text,
 } from '@ui-kitten/components';
 
-import { Container, Loading } from '../../../components/screen';
+import { Container, EmptyScreen, Loading } from '../../../components/screen';
 
 import useSalesChannel from '../../../services/sales/channel/hook';
 import useCatalog from '../../../services/catalog/hooks';
 import { DEVICE_WIDTH, Styles } from '../../../components/theme/styles';
 import { currencyFormat } from '../../../components/utils/common';
-import { useNavigation } from '@react-navigation/native';
+import useSession from '../../../services/sales/session/hook';
 
 const CatalogScreen = () => {
   const router = useNavigation();
@@ -37,6 +39,7 @@ const CatalogScreen = () => {
 
   const { selectedChannel, salesChannels, loading, selectChannel } =
     useSalesChannel();
+  const { summary, summaryResult } = useSession();
 
   const {
     catalog,
@@ -104,46 +107,66 @@ const CatalogScreen = () => {
     }
   }, [selectedChannel, salesChannels]);
 
+  React.useEffect(() => {
+    summary();
+  }, []);
+
   return (
     <Container>
       <View
         style={[
+          Styles.flex,
+          Styles.alignItemsCenter,
           Styles.bgWhite,
           Styles.py3,
           Styles.px6,
-          { borderBottomColor: '#f0f0f0', borderBottomWidth: 2 },
+          { borderBottomColor: '#f0f0f0', borderBottomWidth: 2, gap: 10 },
         ]}
       >
-        <Select
-          selectedIndex={
-            categories?.length > 0 && selectedCategory
-              ? new IndexPath(
-                  categories.findIndex(cat => cat.id === selectedCategory?.id) +
-                    1,
-                )
-              : new IndexPath(0)
-          }
-          value={
-            !selectedCategory
-              ? 'Semua Kategori'
-              : categories.find(c => c?.id === selectedCategory?.id)?.name
-          }
-          onSelect={index => {
-            if (index.row === 0) {
-              onSelectCategory(null);
-            } else {
-              onSelectCategory(categories[index.row - 1]);
+        <View style={{ flex: 1 }}>
+          <Select
+            selectedIndex={
+              categories?.length > 0 && selectedCategory
+                ? new IndexPath(
+                    categories.findIndex(
+                      cat => cat.id === selectedCategory?.id,
+                    ) + 1,
+                  )
+                : new IndexPath(0)
             }
-          }}
-          onFocus={() => {
-            refetchCategory();
-          }}
-        >
-          <SelectItem title="Semua Kategori" />
-          {categories?.map(item => (
-            <SelectItem key={item.id} title={item.name} />
-          ))}
-        </Select>
+            value={
+              !selectedCategory
+                ? 'Semua Kategori'
+                : categories.find(c => c?.id === selectedCategory?.id)?.name
+            }
+            onSelect={index => {
+              if (index.row === 0) {
+                onSelectCategory(null);
+              } else {
+                onSelectCategory(categories[index.row - 1]);
+              }
+            }}
+            onFocus={() => {
+              refetchCategory();
+            }}
+          >
+            <SelectItem title="Semua Kategori" />
+            {categories?.map(item => (
+              <SelectItem key={item.id} title={item.name} />
+            ))}
+          </Select>
+        </View>
+        <View>
+          <TouchableOpacity
+            onPress={() =>
+              router.navigate('transaction', {
+                id: summaryResult?.data?.data?.id,
+              })
+            }
+          >
+            <Icon name="list-outline" style={{ width: 20, height: 20 }} />
+          </TouchableOpacity>
+        </View>
       </View>
       {isLoadingCatalog ? (
         <Loading />
@@ -221,6 +244,7 @@ const CatalogScreen = () => {
               <ActivityIndicator style={{ marginVertical: 16 }} />
             ) : null
           }
+          ListEmptyComponent={() => <EmptyScreen />}
         />
       )}
       <View

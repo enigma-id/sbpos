@@ -30,7 +30,7 @@ const CloseScreen = () => {
   const { printSummary, devices, showDeviceModal, setShowDeviceModal } =
     usePrint();
 
-  const [cashStr, setCashStr] = React.useState(0);
+  const [cashStr, setCashStr] = React.useState('');
   const [cash, setCash] = React.useState(0);
   const [diff, setDiff] = React.useState(0);
 
@@ -156,8 +156,8 @@ const CloseScreen = () => {
         <View style={[Styles.px6, Styles.py4]}>
           <Input
             size="large"
-            accessoryLeft={props => (
-              <Text category="p2" {...props} style={[Styles.alignItemsCenter]}>
+            accessoryLeft={() => (
+              <Text category="p2" style={[Styles.alignItemsCenter]}>
                 Rp.
               </Text>
             )}
@@ -176,7 +176,7 @@ const CloseScreen = () => {
           <Text category="c1">Input jumlah kas tunai akhir</Text>
         </View>
 
-        {cash > 0 && diff && diff !== 0 && (
+        {cash > 0 && diff !== 0 && (
           <ListItem
             style={[Styles.px6, Styles.border]}
             title={() => <Text style={[Styles.listTitle]}>Selisih Kas</Text>}

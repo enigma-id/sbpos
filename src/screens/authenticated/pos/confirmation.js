@@ -149,6 +149,26 @@ const ConfirmationScreen = ({ route }) => {
             )}
           />
           <Divider />
+
+          {data?.payment_ref !== '' && (
+            <>
+              <ListItem
+                style={[Styles.px6]}
+                disabled
+                title={() => <Text category="p1">Ref</Text>}
+                accessoryRight={() => (
+                  <Text
+                    category="h4"
+                    style={[Styles.textUppercase, Styles.textEnd]}
+                  >
+                    {data?.payment_ref}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+
           <ListItem
             disabled
             style={[Styles.px6]}
@@ -166,7 +186,7 @@ const ConfirmationScreen = ({ route }) => {
           <ListItem
             style={[Styles.px6]}
             disabled
-            title={() => <Text category="p1">Tunai Diterima</Text>}
+            title={() => <Text category="p1">Pembayaran Diterima</Text>}
             accessoryRight={() => (
               <Text
                 category="h4"

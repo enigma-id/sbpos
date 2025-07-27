@@ -26,7 +26,6 @@ async function requestBluetoothPermissions() {
       status => status === PermissionsAndroid.RESULTS.GRANTED,
     );
   } catch (err) {
-    console.warn('Permission error:', err);
     return false;
   }
 }
@@ -96,38 +95,61 @@ export function usePrint() {
       payload,
       macAddress: device.macAddress || device.address,
       mmFeedPaper: 10,
+      printerNbrCharactersPerLine: 30,
     });
   }, []);
 
   const printReceipt = useCallback(
     async (data, selectedDevice = null) => {
-      console.log(data, 'data');
       try {
         const device = selectedDevice || (await scanDevices());
         if (!device) return;
 
         const payload =
-          `<img>data:image/png;base64,${base64logo}</img>\n` +
+          `<img>data:image/png;base64,${base64logo}</img>\n\n` +
           `${padLine(
             dateFormat(data?.ordered_at, 'DD-MM-YYYY'),
             dateFormat(data?.ordered_at, 'HH:mm'),
           )}\n` +
           `${padLine('Transaksi', `No. ${data?.code || '-'}`)}\n` +
           `${padLine('Sales Channel', `${data?.channel?.name || '-'}`)}\n` +
-          `${padLine('Kasir', data?.session?.cashier?.name)}\n\n` +
+          `${padLine('Kasir', data?.session?.cashier?.name)}\n` +
+          '--------------------------------\n' +
           '<b>Deskripsi</b>                  <b>Total</b>\n' +
           '--------------------------------\n' +
           data?.items
-            ?.map(
-              item =>
+            ?.map(item => {
+              const itemLine =
                 `${item?.catalog?.name}\n` +
                 `${padLine(
                   `@${currencyFormat(item?.unit_nett, false)} x ${
                     item?.quantity
                   }`,
-                  `${currencyFormat(item?.unit_nett * item?.quantity, false)}`,
-                )}\n`,
-            )
+                  currencyFormat(item?.unit_nett * item?.quantity, false),
+                )}\n`;
+
+              const additionals =
+                item?.additionals?.length > 0
+                  ? item.additionals
+                      .map(
+                        addition =>
+                          `   ${addition?.catalog?.name}\n` +
+                          `${padLine(
+                            `   @${currencyFormat(
+                              addition?.unit_nett,
+                              false,
+                            )} x ${addition?.quantity}`,
+                            currencyFormat(
+                              addition?.unit_nett * addition?.quantity,
+                              false,
+                            ),
+                          )}\n`,
+                      )
+                      .join('')
+                  : '';
+
+              return itemLine + additionals;
+            })
             .join('') +
           `--------------------------------\n` +
           `${padLine('TOTAL', currencyFormat(data?.total_charges, false))}\n` +
@@ -135,6 +157,9 @@ export function usePrint() {
             data?.payment_method?.name || 'CASH',
             currencyFormat(data?.total_payment, false),
           )}\n` +
+          (data?.payment_ref !== ''
+            ? `${padLine('REF', data?.payment_ref)}\n`
+            : '') +
           (data?.total_payment - data?.total_charges > 0
             ? `${padLine(
                 'KEMBALIAN',
@@ -157,8 +182,6 @@ export function usePrint() {
     async (data, selectedDevice = null) => {
       let summary = data?.summary;
       let cash = data?.cash;
-
-      console.log(data, '----');
 
       try {
         const device = selectedDevice || (await scanDevices());
