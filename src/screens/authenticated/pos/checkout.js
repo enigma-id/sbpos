@@ -1,11 +1,9 @@
 import React from 'react';
-import { View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { useSelector } from 'react-redux';
 import {
   Button,
-  Divider,
   Icon,
-  List,
   ListItem,
   Radio,
   RadioGroup,
@@ -13,200 +11,294 @@ import {
 } from '@ui-kitten/components';
 import { useNavigation } from '@react-navigation/native';
 
-import { Container } from '../../../components/screen';
+import { Container, Content } from '../../../components/screen';
 import { DEVICE_WIDTH, Styles } from '../../../components/theme/styles';
 import { currencyFormat } from '../../../components/utils/common';
 import useCart from '../../../services/cart/hook';
+import DiscountSection from './discount';
 
 const CheckoutScreen = () => {
   const router = useNavigation();
   const Cart = useSelector(state => state?.Cart);
-  const { paymentMethod, reset } = useCart();
+  const CartItems = useSelector(state => state?.Cart?.items);
 
+  const { getPaymentMethod, reset } = useCart();
+
+  const [items, setItems] = React.useState([]);
+  const [paymentMethod, setPaymentMethod] = React.useState([]);
   const [selectedMethodIndex, setSelectedMethodIndex] = React.useState(0);
 
-  const methodOptions = React.useMemo(() => {
-    const fromApi = paymentMethod ?? [];
-    return [{ id: 'cash', name: 'Tunai' }, ...fromApi];
-  }, [paymentMethod]);
-
   const onPay = () => {
-    const selectedMethod = methodOptions[selectedMethodIndex];
+    const selectedMethod = filteredMethods[selectedMethodIndex];
 
     router.navigate('payment', {
       method: selectedMethod,
     });
   };
 
+  const filteredMethods = paymentMethod.filter(
+    method => method?.name !== 'Kartu Suka Bread',
+  );
+
+  React.useEffect(() => {
+    const getMethod = async () => {
+      const res = await getPaymentMethod();
+      setPaymentMethod(res);
+    };
+
+    getMethod();
+  }, []);
+
+  React.useEffect(() => {
+    setItems(CartItems?.list ?? []);
+  }, [CartItems]);
+
   return (
     <Container>
-      <List
-        data={Cart?.items}
-        ListHeaderComponent={() => (
-          <View
+      <Content>
+        <View
+          style={[
+            Styles.px6,
+            Styles.py4,
+            Styles.flex,
+            Styles.alignItemsCenter,
+            Styles.justifyContentBetween,
+          ]}
+        >
+          <Text
+            category="s2"
             style={[
-              Styles.px6,
-              Styles.py4,
-              Styles.flex,
-              Styles.alignItemsCenter,
-              Styles.justifyContentBetween,
+              Styles.textUppercase,
+              Styles.textGrey,
+              { letterSpacing: 1, fontWeight: 'bold' },
             ]}
           >
-            <Text
-              category="s2"
-              style={[
-                Styles.textUppercase,
-                Styles.textGrey,
-                { letterSpacing: 1, fontWeight: 'bold' },
-              ]}
-            >
-              RINCIAN BARANG
-            </Text>
+            RINCIAN BARANG
+          </Text>
 
-            <Text
-              category="s2"
-              style={[
-                Styles.textUppercase,
-                Styles.textGrey,
-                { letterSpacing: 1, fontWeight: 'bold' },
-              ]}
-            >
-              {Cart?.count} BARANG
-            </Text>
-          </View>
-        )}
-        renderItem={({ item, index }) => (
-          <View key={index}>
-            <ListItem
-              onPress={() => router.navigate('cart', { catalog: item })}
-              style={[Styles.px6, Styles.py4]}
-              accessoryLeft={props => (
-                <Icon
-                  style={{ width: 20, height: 20, marginEnd: 5 }}
-                  name="create-outline"
-                />
-              )}
-              title={() => <Text category="h5">{item?.name}</Text>}
-              description={() => (
-                <Text category="c2">
-                  @ {currencyFormat(item?.unit_price || 0)}
-                </Text>
-              )}
-              accessoryRight={() => (
-                <View
-                  style={[
-                    Styles.flex,
-                    Styles.alignItemsCenter,
-                    Styles.justifyContentCenter,
-                  ]}
+          <Text
+            category="s2"
+            style={[
+              Styles.textUppercase,
+              Styles.textGrey,
+              { letterSpacing: 1, fontWeight: 'bold' },
+            ]}
+          >
+            {CartItems?.count} BARANG
+          </Text>
+        </View>
+        <View>
+          {items.length > 0
+            ? items.map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() =>
+                    router.navigate('cart', {
+                      catalog: item,
+                      mode: 'edit',
+                      editKey: index,
+                    })
+                  }
+                  style={{ borderBottomWidth: 1, borderBottomColor: '#f0f0f0' }}
                 >
-                  <View
-                    style={[
-                      Styles.bgNotification,
-                      Styles.me3,
-                      Styles.rounded3,
-                      Styles.alignItemsCenter,
-                      Styles.justifyContentCenter,
-                      { width: 25, height: 25 },
-                    ]}
-                  >
-                    <Text category="h5">{item?.quantity}</Text>
-                  </View>
-                  <Text category="h5">
-                    {currencyFormat(item?.unit_price * item?.quantity)}
-                  </Text>
-                </View>
-              )}
-            />
-            {item?.additionals &&
-              item?.additionals?.map(
-                (t, i) =>
-                  t?.quantity > 0 && (
-                    <ListItem
-                      onPress={() => router.navigate('cart', { catalog: item })}
-                      key={i}
-                      style={[Styles.px6, Styles.py4, { paddingLeft: 45 }]}
-                      title={() => <Text category="h6">{t?.name}</Text>}
-                      description={() => (
-                        <Text category="c1">
-                          @ {currencyFormat(t?.unit_price || 0)}
-                        </Text>
-                      )}
-                      accessoryRight={() => (
-                        <View
-                          style={[
-                            Styles.flex,
-                            Styles.alignItemsCenter,
-                            Styles.justifyContentCenter,
-                          ]}
-                        >
-                          <View
-                            style={[
-                              Styles.bgNotification,
-                              Styles.me3,
-                              Styles.rounded3,
-                              Styles.alignItemsCenter,
-                              Styles.justifyContentCenter,
-                              { width: 25, height: 25 },
-                            ]}
+                  <ListItem
+                    disabled
+                    style={[Styles.px6, Styles.py4]}
+                    title={() => <Text category="h5">{item?.name}</Text>}
+                    description={() => (
+                      <Text category="c2">
+                        {item?.quantity} x{' '}
+                        {item?.discount_amount > 0
+                          ? currencyFormat(
+                              item?.unit_price -
+                                item?.discount_amount / item.quantity >
+                                0
+                                ? item?.unit_price -
+                                    item?.discount_amount / item.quantity
+                                : 0,
+                              false,
+                            )
+                          : currencyFormat(item?.unit_price, false)}{' '}
+                        {item?.discount_amount > 0 && (
+                          <Text
+                            category="s2"
+                            style={{ textDecorationLine: 'line-through' }}
                           >
-                            <Text category="h5">{t?.quantity}</Text>
-                          </View>
-                          <Text category="h5">
-                            {currencyFormat(t?.unit_price * t?.quantity)}
+                            {currencyFormat(item?.unit_price, false)}
                           </Text>
-                        </View>
-                      )}
-                    />
-                  ),
-              )}
-          </View>
-        )}
-        ItemSeparatorComponent={Divider}
-        ListFooterComponent={() => (
-          <View style={[Styles.mb5]}>
-            <View style={[Styles.px6, Styles.py4, Styles.mt5]}>
-              <Text
-                category="s2"
-                style={[
-                  Styles.textUppercase,
-                  Styles.textGrey,
-                  { letterSpacing: 1, fontWeight: 'bold' },
-                ]}
-              >
-                Metode Pembayaran
-              </Text>
-            </View>
-
-            {methodOptions && methodOptions.length > 0 && (
-              <RadioGroup
-                selectedIndex={selectedMethodIndex}
-                onChange={index => setSelectedMethodIndex(index)}
-                style={[Styles.bgWhite]}
-              >
-                {methodOptions.map((method, index) => (
-                  <Radio
-                    status="primary"
-                    key={index}
-                    style={[
-                      Styles.px6,
-                      Styles.py4,
-                      Styles.borderBottom,
-                      { gap: 20, marginBottom: 0, marginTop: 0 },
-                    ]}
-                  >
-                    {evaProps => (
-                      <Text category="s1" style={{ fontWeight: 'bold' }}>
-                        {method?.name}
+                        )}
                       </Text>
                     )}
-                  </Radio>
-                ))}
-              </RadioGroup>
-            )}
+                    accessoryRight={() => (
+                      <View
+                        style={[
+                          Styles.flex,
+                          Styles.alignItemsCenter,
+                          Styles.justifyContentCenter,
+                        ]}
+                      >
+                        {/* <View
+                          style={[
+                            Styles.bgNotification,
+                            Styles.me3,
+                            Styles.rounded3,
+                            Styles.alignItemsCenter,
+                            Styles.justifyContentCenter,
+                            { minWidth: 25, height: 25 },
+                          ]}
+                        >
+                          <Text category="h5">{item?.quantity}</Text>
+                        </View> */}
+                        <Text category="p2">
+                          {currencyFormat(
+                            item?.quantity *
+                              (item?.discount_amount > 0
+                                ? item?.unit_price -
+                                    item?.discount_amount / item.quantity >
+                                  0
+                                  ? item?.unit_price -
+                                    item?.discount_amount / item.quantity
+                                  : 0
+                                : item?.unit_price),
+                            false,
+                          )}
+                        </Text>
+                      </View>
+                    )}
+                  />
+                  {(item?.additionals || [])
+                    .map(add => {
+                      const selectedChilds = (add?.childs || []).filter(child =>
+                        add.type === 'quantity'
+                          ? (child?.quantity || 0) > 0
+                          : !!child?.selected,
+                      );
+
+                      if (selectedChilds.length === 0) return null;
+
+                      const childNames = selectedChilds.map(child => {
+                        const suffix =
+                          add?.type === 'quantity' || add?.type === 'checkbox'
+                            ? `(${item?.quantity} x ${
+                                child?.quantity
+                              }) x ${currencyFormat(
+                                child?.unit_price,
+                                false,
+                                0,
+                              )} `
+                            : '';
+
+                        return (
+                          <ListItem
+                            disabled
+                            key={child?.id}
+                            style={{ paddingVertical: 2, paddingHorizontal: 0 }}
+                            description={() => (
+                              <Text category="c1">
+                                + {child?.name} {suffix}
+                              </Text>
+                            )}
+                            accessoryRight={() => (
+                              <Text category="c1">
+                                {currencyFormat(
+                                  item?.quantity *
+                                    child?.quantity *
+                                    child?.unit_price,
+                                  false,
+                                  0,
+                                )}
+                              </Text>
+                            )}
+                          />
+                        );
+                      });
+
+                      return (
+                        <View
+                          key={add?.id}
+                          style={[Styles.px6, Styles.py2, Styles.bgWhite]}
+                        >
+                          <Text category="h6">{add?.name}</Text>
+                          <View>{childNames}</View>
+                        </View>
+                      );
+                    })
+                    .filter(Boolean)}
+
+                  <View style={[Styles.px6, Styles.py2, Styles.bgWhite]}>
+                    {item?.discount_amount > 0 ? (
+                      <Text
+                        category="h4"
+                        style={{ textAlign: 'right', color: '#EE6615' }}
+                      >
+                        <Text
+                          category="s2"
+                          style={{
+                            textDecorationLine: 'line-through',
+                          }}
+                        >
+                          {currencyFormat(item?.subtotal, false)}{' '}
+                        </Text>
+                        {currencyFormat(item?.final_total, false)}
+                      </Text>
+                    ) : (
+                      <Text
+                        category="h4"
+                        style={{ textAlign: 'right', color: '#EE6615' }}
+                      >
+                        {currencyFormat(item?.subtotal, false)}
+                      </Text>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              ))
+            : null}
+        </View>
+
+        <View style={[Styles.mb5]}>
+          <DiscountSection />
+
+          <View style={[Styles.px6, Styles.py4, Styles.mt5]}>
+            <Text
+              category="s2"
+              style={[
+                Styles.textUppercase,
+                Styles.textGrey,
+                { letterSpacing: 1, fontWeight: 'bold' },
+              ]}
+            >
+              Metode Pembayaran
+            </Text>
           </View>
-        )}
-      />
+
+          {filteredMethods && filteredMethods.length > 0 && (
+            <RadioGroup
+              selectedIndex={selectedMethodIndex}
+              onChange={index => setSelectedMethodIndex(index)}
+              style={[Styles.bgWhite]}
+            >
+              {filteredMethods.map((method, index) => (
+                <Radio
+                  status="primary"
+                  key={index}
+                  style={[
+                    Styles.px6,
+                    Styles.py4,
+                    Styles.borderBottom,
+                    { gap: 20, marginBottom: 0, marginTop: 0 },
+                  ]}
+                >
+                  {evaProps => (
+                    <Text category="s1" style={{ fontWeight: 'bold' }}>
+                      {method?.name}
+                    </Text>
+                  )}
+                </Radio>
+              ))}
+            </RadioGroup>
+          )}
+        </View>
+      </Content>
 
       <View
         style={[
@@ -228,9 +320,23 @@ const CheckoutScreen = () => {
           <Text category="p2" style={[Styles.textStart]}>
             Total Pembayaran
           </Text>
-          <Text category="h4" status="primary" style={[Styles.textEnd]}>
-            {currencyFormat(Cart?.subtotal)}
-          </Text>
+          <View>
+            {Cart?.meta?.subtotal > Cart?.meta?.grand_total ? (
+              <Text
+                category="s2"
+                style={{
+                  textDecorationLine: 'line-through',
+                  textAlign: 'right',
+                }}
+              >
+                {currencyFormat(Cart?.meta?.subtotal, false)}
+              </Text>
+            ) : null}
+
+            <Text category="h4" status="primary" style={[Styles.textEnd]}>
+              {currencyFormat(Cart?.meta?.grand_total)}
+            </Text>
+          </View>
         </View>
         <View
           style={[

@@ -1,164 +1,349 @@
 import React from 'react';
-import { Image, View } from 'react-native';
-import { useDispatch } from 'react-redux';
+import {
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Button, Divider, List, ListItem, Text } from '@ui-kitten/components';
+import {
+  Button,
+  CheckBox,
+  Divider,
+  Input,
+  ListItem,
+  Radio,
+  Text,
+} from '@ui-kitten/components';
 
 import useCart from '../../../services/cart/hook';
-import { addItem, changeItem } from '../../../services/cart/slice';
 import { Container, QuantityStepper } from '../../../components/screen';
 import { DEVICE_WIDTH, Styles } from '../../../components/theme/styles';
 import { currencyFormat } from '../../../components/utils/common';
+import { useSelector } from 'react-redux';
 
-const CartScreen = props => {
-  const route = useNavigation();
-  const dispatch = useDispatch();
-  const catalog = props?.route?.params?.catalog;
+const CartScreen = ({ route }) => {
+  const navigation = useNavigation();
+  const FormState = useSelector(state => state?.Form);
 
-  const {
-    catalogDetail,
-    isItemInCart,
-    existingItem,
-    existingIndex,
-    cartItems,
-  } = useCart(catalog?.id);
+  const catalog = route?.params?.catalog;
+  const mode = route?.params?.mode ?? 'add';
+  const editKey = route?.params?.editKey ?? null;
+
+  const { catalogDetail, cartItems, change, add } = useCart(catalog?.id);
 
   const [catalogData, setCatalogData] = React.useState({});
   const [quantity, setQuantity] = React.useState(0);
   const [additionals, setAdditionals] = React.useState([]);
 
   React.useEffect(() => {
-    const source = existingItem || catalogDetail;
-    if (!source) return;
+    const isEditMode = mode === 'edit';
 
-    setCatalogData({
-      ...source,
-      unit_price: source?.unit_price || catalog?.unit_price || 0,
-    });
-    setQuantity(existingItem?.quantity || 0);
+    const existingItem =
+      isEditMode && typeof editKey === 'number' ? catalog : null;
 
-    const additions =
-      source?.additionals?.map(item => ({
-        ...item,
-        quantity: existingItem
-          ? existingItem?.additionals?.find(t => t.id === item.id)?.quantity ||
-            0
-          : 0,
-      })) || [];
-
-    setAdditionals(additions);
-  }, [existingItem, catalogDetail]);
-
-  const updateAdditionalQuantity = (index, newQty) => {
-    let updated = [...additionals];
-    let item = updated[index];
-
-    item.quantity = newQty;
-    item.subtotal = newQty * item.unit_price;
-    setAdditionals(updated);
-  };
-
-  const getSubtotal = (qty, additions = []) => {
-    let sub = qty * (catalogData?.unit_price || catalog?.unit_price || 0);
-
-    additions.forEach(i => {
-      sub += i.quantity * qty * i.unit_price;
-    });
-
-    return sub;
-  };
-
-  const addToCart = () => {
     if (!catalogDetail) return;
 
-    const filteredAdditionals = additionals.filter(item => item.quantity > 0);
+    setCatalogData({
+      ...catalogDetail,
+      name: catalogDetail?.name || catalog?.name || '',
+      unit_price: catalogDetail?.unit_price || catalog?.unit_price || 0,
+    });
+
+    if (isEditMode && existingItem) {
+      const itemQty = existingItem?.quantity || 0;
+      setQuantity(itemQty);
+
+      const additions = (catalogDetail?.additionals || []).map(add => {
+        const cartAddon = existingItem?.additionals?.find(
+          item => item.id === add.id,
+        );
+        return {
+          ...add,
+          childs: (add?.childs || []).map(child => {
+            const cartChild = cartAddon?.childs?.find(c => c.id === child.id);
+
+            return {
+              ...child,
+              quantity:
+                add?.type === 'quantity'
+                  ? cartChild?.quantity || 0
+                  : cartChild
+                  ? 1
+                  : 0,
+              selected: add.type !== 'quantity' ? !!cartChild?.selected : false,
+            };
+          }),
+        };
+      });
+
+      setAdditionals(additions);
+    } else {
+      setQuantity(0);
+      const clearedAdditionals = (catalogDetail?.additionals || []).map(
+        add => ({
+          ...add,
+          childs: (add?.childs || []).map(child => ({
+            ...child,
+            quantity: 0,
+            selected: false,
+          })),
+        }),
+      );
+      setAdditionals(clearedAdditionals);
+    }
+  }, [catalogDetail, catalog, mode]);
+
+  const addToCart = () => {
+    if (!catalogData) return;
 
     const formattedItem = {
       ...catalogData,
-      quantity: quantity,
-      additionals: additionals,
-      subtotal: getSubtotal(quantity, filteredAdditionals),
+      quantity,
+      additionals,
+      subtotal: calculateSubtotal(),
     };
 
-    // Kalau quantity <= 0 dan item memang sudah ada di cart, artinya mau hapus
-    const isDeleting = quantity <= 0 && isItemInCart;
+    const isRemoving = quantity <= 0;
 
-    if (isItemInCart) {
-      dispatch(changeItem({ key: existingIndex, catalog: formattedItem }));
+    if (mode === 'edit') {
+      change(editKey, formattedItem);
+
+      const isLastItem = cartItems?.length === 1;
+
+      if (isRemoving && isLastItem) {
+        navigation.reset({
+          index: 1,
+          routes: [{ name: 'home' }, { name: 'catalog' }],
+        });
+        return;
+      }
     } else {
-      dispatch(addItem(formattedItem));
+      add(formattedItem);
     }
 
-    const remainingItems = isDeleting
-      ? cartItems?.length - 1
-      : cartItems?.length + (isItemInCart ? 0 : 1);
+    navigation.goBack();
+  };
 
-    // Navigasi
-    if (isDeleting && remainingItems <= 0) {
-      route.reset({
-        index: 1,
-        routes: [{ name: 'home' }, { name: 'catalog' }],
+  const updateAdditionalQuantity = (addonId, childId, qty) => {
+    setAdditionals(prev =>
+      prev.map(add =>
+        add.id !== addonId
+          ? add
+          : {
+              ...add,
+              childs: add.childs.map(c =>
+                c.id !== childId ? c : { ...c, quantity: qty },
+              ),
+            },
+      ),
+    );
+  };
+
+  const selectOption = (addonId, selectedChildId) => {
+    setAdditionals(prev =>
+      prev.map(add => {
+        if (add.id !== addonId) return add;
+        const isAlreadySelected = add.childs.some(
+          child => child.id === selectedChildId && child.selected,
+        );
+        return {
+          ...add,
+          childs: add.childs.map(child => ({
+            ...child,
+            selected: isAlreadySelected ? false : child.id === selectedChildId,
+            quantity: isAlreadySelected
+              ? 0
+              : child.id === selectedChildId
+              ? 1
+              : 0,
+          })),
+        };
+      }),
+    );
+  };
+
+  const toggleCheckbox = (addonId, childId, checked) => {
+    setAdditionals(prev =>
+      prev.map(add =>
+        add.id !== addonId
+          ? add
+          : {
+              ...add,
+              childs: add.childs.map(c =>
+                c.id !== childId
+                  ? c
+                  : { ...c, selected: checked, quantity: checked ? 1 : 0 },
+              ),
+            },
+      ),
+    );
+  };
+
+  const calculateSubtotal = () => {
+    let total = quantity * (catalogData?.unit_price || 0);
+
+    additionals.forEach(add => {
+      add.childs.forEach(child => {
+        if (add.type === 'quantity' && child.quantity > 0) {
+          total += quantity * child.quantity * (child.unit_price || 0);
+        }
+        if (add.type !== 'quantity' && child.selected) {
+          total += quantity * (child.unit_price || 0);
+        }
       });
-    } else {
-      route.goBack();
-    }
+    });
+
+    return total;
+  };
+
+  const Checkboxs = ({ label, price, checked, onChange }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => onChange(!checked)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 6,
+        }}
+      >
+        <Text category="s2">{label}</Text>
+
+        <View style={[Styles.flex, Styles.alignItemsCenter, { gap: 10 }]}>
+          <Text category="s2">
+            {price ? `${currencyFormat(price)}` : 'Free'}
+          </Text>
+          <CheckBox checked={checked} onChange={() => onChange(!checked)} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const Selects = ({ label, price, checked, onChange }) => {
+    return (
+      <TouchableOpacity
+        onPress={() => onChange(!checked)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: 6,
+        }}
+      >
+        <Text category="s2">{label}</Text>
+
+        <View style={[Styles.flex, Styles.alignItemsCenter, { gap: 10 }]}>
+          <Text category="s2">
+            {price ? `${currencyFormat(price)}` : 'Free'}
+          </Text>
+          <Radio checked={checked} onChange={() => onChange(!checked)} />
+        </View>
+      </TouchableOpacity>
+    );
   };
 
   return (
     <Container>
-      <List
-        data={additionals}
-        ItemSeparatorComponent={Divider}
-        renderItem={({ item, index }) => (
-          <ListItem
-            disabled
-            style={[Styles.px6, Styles.py4]}
-            key={item?.id}
-            title={() => (
-              <Text category="h6" style={[Styles.textUppercase]}>
-                {item?.name}
-              </Text>
-            )}
-            description={() => (
-              <Text category="s2">@ {currencyFormat(item?.unit_price)}</Text>
-            )}
-            accessoryRight={
-              <QuantityStepper
-                value={item?.quantity}
-                onChange={val => updateAdditionalQuantity(index, val)}
-              />
-            }
-          />
-        )}
-        ListHeaderComponent={() => (
+      <View>
+        <Image
+          source={{ uri: catalogData?.image }}
+          style={{ width: DEVICE_WIDTH, height: 100 }}
+        />
+
+        {catalogData?.is_custom === 1 ? (
+          <View style={[Styles.px6, Styles.py4]}>
+            <Input
+              size="large"
+              value={catalogData?.name || ''}
+              style={[Styles.pb4]}
+              label={() => (
+                <Text
+                  category="s2"
+                  style={[
+                    Styles.textUppercase,
+                    Styles.textGrey,
+                    Styles.pb4,
+                    { letterSpacing: 1, fontWeight: 'bold' },
+                  ]}
+                >
+                  Catalog Name
+                </Text>
+              )}
+              status={FormState?.errors?.note ? 'danger' : 'basic'}
+              onChangeText={v => setCatalogData(prev => ({ ...prev, name: v }))}
+            />
+
+            <Input
+              size="large"
+              value={currencyFormat(catalogData?.unit_price)}
+              style={[Styles.pb4]}
+              label={() => (
+                <Text
+                  category="s2"
+                  style={[
+                    Styles.textUppercase,
+                    Styles.textGrey,
+                    Styles.pb4,
+                    { letterSpacing: 1, fontWeight: 'bold' },
+                  ]}
+                >
+                  Catalog Price
+                </Text>
+              )}
+              keyboardType="number-pad"
+              status={FormState?.errors?.note ? 'danger' : 'basic'}
+              onChangeText={v => {
+                const raw = v.replace(/[^0-9]/g, '');
+                setCatalogData(prev => ({
+                  ...prev,
+                  unit_price: Number(raw),
+                }));
+              }}
+            />
+          </View>
+        ) : (
           <>
-            <View>
-              <Image
-                source={{ uri: catalogData?.image }}
-                style={{ width: DEVICE_WIDTH, height: 100 }}
-              />
+            <ListItem
+              disabled
+              style={[Styles.px6, Styles.py4]}
+              title={() => (
+                <Text category="h4" style={[Styles.textUppercase]}>
+                  {catalogData?.name}
+                </Text>
+              )}
+              accessoryRight={() => (
+                <Text category="h4">
+                  {currencyFormat(
+                    catalogData?.unit_price || catalog?.unit_price,
+                  )}
+                </Text>
+              )}
+            />
+            <Divider />
+          </>
+        )}
+      </View>
 
-              <ListItem
-                disabled
-                style={[Styles.px6, Styles.py4]}
-                title={() => (
-                  <Text category="h4" style={[Styles.textUppercase]}>
-                    {catalogData?.name}
-                  </Text>
-                )}
-                accessoryRight={() => (
-                  <Text category="h4">
-                    {currencyFormat(
-                      catalogData?.unit_price || catalog?.unit_price,
-                    )}
-                  </Text>
-                )}
-              />
-              <Divider />
-            </View>
-
-            {additionals?.length > 0 && (
-              <View style={[Styles.px6, Styles.py4]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 140} // bisa disesuaikan
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView
+            style={[Styles.flex, Styles.flexColumn]}
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingBottom: 32, // atau lebih, tergantung ukuran tombol & keyboard
+            }}
+          >
+            {additionals?.map(addon => (
+              <View key={addon.id} style={[Styles.px6, Styles.py4]}>
                 <Text
                   category="s2"
                   style={[
@@ -167,13 +352,79 @@ const CartScreen = props => {
                     { letterSpacing: 1, fontWeight: 'bold' },
                   ]}
                 >
-                  Tambah Topping
+                  {addon.name}{' '}
+                  <Text
+                    category="c1"
+                    style={[Styles.textLowercase, { letterSpacing: 0 }]}
+                  >
+                    {addon?.type === 'quantity'
+                      ? '(set quantity for each option)'
+                      : addon?.type === 'options'
+                      ? '(choose one)'
+                      : addon?.type === 'checkbox'
+                      ? '(choose one or more)'
+                      : null}
+                  </Text>
                 </Text>
+
+                {addon?.childs?.map(child => (
+                  <View key={child.id}>
+                    {addon.type === 'quantity' ? (
+                      <View
+                        style={[
+                          Styles.flex,
+                          Styles.alignItemsCenter,
+                          Styles.justifyContentBetween,
+                          Styles.py2,
+                        ]}
+                      >
+                        <Text category="s2">{child.name}</Text>
+                        <View
+                          style={[
+                            Styles.flex,
+                            Styles.alignItemsCenter,
+                            { gap: 10 },
+                          ]}
+                        >
+                          <Text category="s2">
+                            {child?.unit_price
+                              ? `${currencyFormat(child?.unit_price)}`
+                              : 'Free'}
+                          </Text>
+                          <QuantityStepper
+                            small
+                            value={child.quantity}
+                            onChange={val =>
+                              updateAdditionalQuantity(addon.id, child.id, val)
+                            }
+                          />
+                        </View>
+                      </View>
+                    ) : addon.type === 'options' ? (
+                      <Selects
+                        label={child?.name}
+                        price={child?.unit_price}
+                        checked={child?.selected}
+                        onChange={() => selectOption(addon.id, child.id)}
+                      />
+                    ) : addon.type === 'checkbox' ? (
+                      <Checkboxs
+                        label={child?.name}
+                        price={child?.unit_price}
+                        checked={child?.selected}
+                        onChange={val =>
+                          toggleCheckbox(addon.id, child.id, val)
+                        }
+                      />
+                    ) : null}
+                  </View>
+                ))}
               </View>
-            )}
-          </>
-        )}
-      />
+            ))}
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
+
       <View
         style={[
           Styles.flex,
@@ -181,7 +432,11 @@ const CartScreen = props => {
           Styles.px6,
           Styles.py4,
           Styles.bgWhite,
-          { gap: 10, borderTopColor: '#f0f0f0', borderTopWidth: 1 },
+          {
+            gap: 10,
+            borderTopColor: '#f0f0f0',
+            borderTopWidth: 1,
+          },
         ]}
       >
         <View style={{ width: DEVICE_WIDTH / 2 }}>
@@ -192,12 +447,18 @@ const CartScreen = props => {
             onPress={addToCart}
             size="small"
             status={
-              quantity > 0 ? 'success' : isItemInCart ? 'danger' : 'primary'
+              quantity > 0 ? 'success' : mode === 'edit' ? 'danger' : 'primary'
+            }
+            disabled={
+              (catalogData?.is_custom === 1 && !catalogData?.name) ||
+              (catalogData?.is_custom === 1 && !catalogData?.unit_price)
+                ? true
+                : false
             }
           >
             {quantity > 0
               ? 'Tambahkan'
-              : isItemInCart
+              : mode === 'edit'
               ? 'Hapus & Kembali'
               : 'Kembali'}
           </Button>

@@ -8,7 +8,7 @@ export const cartApi = createApi({
     checkout: builder.mutation({
       query: payload => {
         return {
-          url: '/sales/order',
+          url: '/sales/order/direct-pay',
           method: 'POST',
           body: payload,
         };
@@ -31,5 +31,5 @@ export const cartApi = createApi({
   }),
 });
 
-export const { useCheckoutMutation, useUpdateMutation, useGetMethodQuery } =
+export const { useCheckoutMutation, useUpdateMutation, useLazyGetMethodQuery } =
   cartApi;

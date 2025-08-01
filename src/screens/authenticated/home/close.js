@@ -114,7 +114,7 @@ const CloseScreen = () => {
       <Content onRefresh={null}>
         <ListItem
           style={[Styles.px6]}
-          title={() => <Text style={[Styles.listTitle]}>Mulai Sesi</Text>}
+          title={() => <Text style={[Styles.listTitle]}>Session Started</Text>}
           accessoryRight={() => (
             <Text style={[Styles.listTitle]} category="h6">
               {dateFormat(summaryResult?.data?.data?.started_at)}
@@ -124,7 +124,7 @@ const CloseScreen = () => {
         <Divider />
         <ListItem
           style={[Styles.px6]}
-          title={() => <Text style={[Styles.listTitle]}>Kasir</Text>}
+          title={() => <Text style={[Styles.listTitle]}>Cashier</Text>}
           accessoryRight={() => (
             <Text style={[Styles.listTitle]} category="h6">
               {summaryResult?.data?.data?.cashier?.name}
@@ -134,7 +134,7 @@ const CloseScreen = () => {
         <Divider />
         <ListItem
           style={[Styles.px6]}
-          title={() => <Text style={[Styles.listTitle]}>Kas Awal</Text>}
+          title={() => <Text style={[Styles.listTitle]}>Starting Cash</Text>}
           accessoryRight={() => (
             <Text style={[Styles.listTitle]} category="h6">
               {currencyFormat(summaryResult?.data?.data?.cash_started || 0)}
@@ -145,13 +145,116 @@ const CloseScreen = () => {
 
         <ListItem
           style={[Styles.px6]}
-          title={() => <Text style={[Styles.listTitle]}>Total Transaksi</Text>}
+          title={() => (
+            <Text style={[Styles.listTitle]}>Total Bill Payments</Text>
+          )}
           accessoryRight={() => (
             <Text style={[Styles.listTitle]} category="h6">
-              {currencyFormat(summaryResult?.data?.data?.subtotal_order || 0)}
+              {currencyFormat(summaryResult?.data?.data?.bill_payment || 0)}
             </Text>
           )}
         />
+        <Divider />
+
+        <ListItem
+          style={[Styles.px6]}
+          title={() => <Text style={[Styles.listTitle]}>Topup Cash</Text>}
+          accessoryRight={() => (
+            <Text style={[Styles.listTitle]} category="h6">
+              {currencyFormat(summaryResult?.data?.data?.cash_topup || 0)}
+            </Text>
+          )}
+        />
+        <Divider />
+
+        <ListItem
+          style={[Styles.px6]}
+          title={() => <Text style={[Styles.listTitle]}>Total Sales</Text>}
+          accessoryRight={() => (
+            <Text style={[Styles.listTitle]} category="h6">
+              {currencyFormat(
+                summaryResult?.data?.data?.summary_order?.total_nett || 0,
+              )}
+            </Text>
+          )}
+        />
+        <Divider />
+
+        <ListItem
+          style={[Styles.px6]}
+          title={() => <Text style={[Styles.listTitle]}>Total Discount</Text>}
+          accessoryRight={() => (
+            <Text style={[Styles.listTitle]} category="h6">
+              {currencyFormat(
+                summaryResult?.data?.data?.summary_order?.total_discount || 0,
+              )}
+            </Text>
+          )}
+        />
+        <Divider />
+
+        <ListItem
+          style={[Styles.px6]}
+          title={() => (
+            <Text style={[Styles.listTitle]}>Total After Discount</Text>
+          )}
+          accessoryRight={() => (
+            <Text style={[Styles.listTitle]} category="h6">
+              {currencyFormat(
+                summaryResult?.data?.data?.summary_order?.total_charges || 0,
+              )}
+            </Text>
+          )}
+        />
+        <Divider />
+
+        <ListItem
+          style={[Styles.px6]}
+          title={() => <Text style={[Styles.listTitle]}>Total Bills</Text>}
+          accessoryRight={() => (
+            <Text style={[Styles.listTitle]} category="h6">
+              {currencyFormat(
+                summaryResult?.data?.data?.summary_order?.total_openbill || 0,
+              )}
+            </Text>
+          )}
+        />
+        <Divider />
+
+        <ListItem
+          style={[Styles.px6]}
+          title={() => <Text style={[Styles.listTitle]}>Total Omzet</Text>}
+          accessoryRight={() => (
+            <Text style={[Styles.listTitle]} category="h6">
+              {currencyFormat(
+                summaryResult?.data?.data?.summary_order?.total_openbill +
+                  summaryResult?.data?.data?.summary_order?.total_nett || 0,
+              )}
+            </Text>
+          )}
+        />
+        <Divider />
+
+        {summaryResult?.data?.data?.cash_payments?.length > 0 && (
+          <View style={[Styles.px6, Styles.py4]}>
+            {summaryResult?.data?.data?.cash_payments?.map((pm, i) => (
+              <ListItem
+                key={i}
+                style={[Styles.px6, Styles.bgNotification]}
+                title={() => (
+                  <Text style={[Styles.listTitle]}>
+                    {pm?.payment_name === '' ? 'Cash' : pm?.payment_name}
+                  </Text>
+                )}
+                accessoryRight={() => (
+                  <Text style={[Styles.listTitle]} category="h6">
+                    {currencyFormat(pm?.subtotal || 0)}
+                  </Text>
+                )}
+              />
+            ))}
+          </View>
+        )}
 
         <View style={[Styles.px6, Styles.py4]}>
           <Input

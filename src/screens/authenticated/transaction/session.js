@@ -82,8 +82,10 @@ const SessionScreen = () => {
             style={{ width: 25, height: 25, marginEnd: 10 }}
           />
         )}
-        title={() => <Text category="h5">{dateFormat(item?.started_at)}</Text>}
-        description={() => <Text category="s2">{item?.cashier?.name}</Text>}
+        title={() => <Text category="h5">{item?.cashier?.name}</Text>}
+        description={() => (
+          <Text category="s2">{dateFormat(item?.started_at)}</Text>
+        )}
         accessoryRight={() => (
           <View>
             {item?.status === 'active' ? (

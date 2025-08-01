@@ -41,6 +41,7 @@ const DetailScreen = ({ route }) => {
   const [receipt, setReceipt] = React.useState('');
   const [cancelModal, setCancelModal] = React.useState(false);
   const [pin, setPin] = React.useState('');
+  const [discountMap, setDiscountMap] = React.useState([]);
 
   const onShare = () => {
     const opt = {
@@ -78,6 +79,38 @@ const DetailScreen = ({ route }) => {
     }
   }, [cancelResult]);
 
+  const groupedCategories = items => {
+    const group = {};
+
+    items.forEach(item => {
+      const category = item?.catalog?.category;
+      const discount = item?.discount_value * item?.quantity || 0;
+
+      if (!category) return;
+
+      const id = category.id;
+      const name = category.name;
+
+      if (!group[id]) {
+        group[id] = {
+          id,
+          name,
+          subtotal: 0,
+        };
+      }
+
+      group[id].subtotal += discount;
+    });
+
+    const result = Object.values(group).filter(item => item.subtotal > 0);
+    setDiscountMap(result);
+  };
+
+  React.useEffect(() => {
+    if (!showResult?.data?.data) return;
+    groupedCategories(showResult?.data?.data?.items);
+  }, [showResult]);
+
   if (showResult.isLoading) {
     return <Loading />;
   }
@@ -110,6 +143,67 @@ const DetailScreen = ({ route }) => {
             INFORMASI TRANSAKSI
           </Text>
 
+          {(data?.ticket || data?.note) && (
+            <>
+              <ListItem
+                disabled
+                style={[Styles.px6]}
+                title={() => <Text category="p2">Bills name</Text>}
+                accessoryRight={() => (
+                  <Text style={[Styles.textEnd]} category="h5">
+                    {data?.ticket || data?.note}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+
+          <ListItem
+            disabled
+            style={[Styles.px6]}
+            title={() => <Text category="p2">Customer</Text>}
+            accessoryRight={() => (
+              <Text style={[Styles.textEnd]} category="h5">
+                {data?.membership?.name || '-'}
+              </Text>
+            )}
+          />
+          <Divider />
+
+          <ListItem
+            disabled
+            style={[Styles.px6]}
+            title={() => <Text category="p2">Cashier</Text>}
+            accessoryRight={() => (
+              <Text style={[Styles.textEnd]} category="h5">
+                {data?.session?.cashier?.name || '-'}
+              </Text>
+            )}
+          />
+          <Divider />
+
+          <ListItem
+            disabled
+            style={[Styles.px6]}
+            title={() => <Text category="p2">Session time</Text>}
+            accessoryRight={() => (
+              <View>
+                <Text style={[Styles.textEnd]} category="h5">
+                  {dateFormat(data?.session?.started_at, 'DD/MM/YYYY HH:mm')}
+                </Text>
+                <Text style={[Styles.textEnd]} category="h5">
+                  {dateFormat(
+                    data?.session?.finished_at,
+                    'DD/MM/YYYY HH:mm',
+                    '(ongoing)',
+                  )}
+                </Text>
+              </View>
+            )}
+          />
+          <Divider />
+
           <ListItem
             disabled
             style={[Styles.px6]}
@@ -133,62 +227,6 @@ const DetailScreen = ({ route }) => {
             )}
           />
           <Divider />
-
-          <ListItem
-            disabled
-            style={[Styles.px6]}
-            title={() => <Text category="p2">Metode Pembayaran</Text>}
-            accessoryRight={() => (
-              <Text style={[Styles.textEnd]} category="h5">
-                {data?.payment_method?.name || 'CASH'}
-              </Text>
-            )}
-          />
-          <Divider />
-
-          {data?.payment_ref !== '' && (
-            <>
-              <ListItem
-                disabled
-                style={[Styles.px6]}
-                title={() => <Text category="p2">REF</Text>}
-                accessoryRight={() => (
-                  <Text style={[Styles.textEnd]} category="h5">
-                    {data?.payment_ref}
-                  </Text>
-                )}
-              />
-              <Divider />
-            </>
-          )}
-
-          <ListItem
-            disabled
-            style={[Styles.px6]}
-            title={() => <Text category="p2">Total Transaksi</Text>}
-            accessoryRight={() => (
-              <Text style={[Styles.textEnd]} category="h5">
-                {currencyFormat(data?.total_charges)}
-              </Text>
-            )}
-          />
-          <Divider />
-
-          <ListItem
-            disabled
-            style={[Styles.px6]}
-            title={() => <Text category="p2">Status</Text>}
-            accessoryRight={() => (
-              <Text
-                style={[Styles.textUppercase, Styles.textEnd]}
-                category="h5"
-                status={data?.status === 'void' ? 'basic' : 'success'}
-              >
-                {data?.status}
-              </Text>
-            )}
-          />
-          <Divider />
         </View>
 
         <View>
@@ -207,87 +245,208 @@ const DetailScreen = ({ route }) => {
 
           {data?.items?.map((item, index) => (
             <View key={index}>
-              <ListItem
-                disabled
-                style={[Styles.px6]}
-                title={() => <Text category="h5">{item?.catalog?.name}</Text>}
-                description={() => (
-                  <Text category="c2">@ {currencyFormat(item?.unit_nett)}</Text>
-                )}
-                accessoryRight={() => (
-                  <View
-                    style={[
-                      Styles.flex,
-                      Styles.alignItemsCenter,
-                      Styles.justifyContentCenter,
-                    ]}
-                  >
-                    <View
-                      style={[
-                        Styles.bgNotification,
-                        Styles.me3,
-                        Styles.rounded3,
-                        Styles.alignItemsCenter,
-                        Styles.justifyContentCenter,
-                        { width: 25, height: 25 },
-                      ]}
-                    >
-                      <Text category="h5">{item?.quantity}</Text>
-                    </View>
-                    <Text style={[Styles.textEnd]} category="h5">
-                      {currencyFormat(item?.unit_nett * item?.quantity)}
+              <View style={[Styles.py3, Styles.bgWhite]}>
+                <ListItem
+                  disabled
+                  style={[Styles.px6, Styles.py1]}
+                  title={() => (
+                    <Text category="h5">
+                      {item?.catalog?.name || item?.description}
                     </Text>
-                  </View>
-                )}
-              />
-              {item?.additionals?.length > 0 &&
-                item?.additionals?.map((addition, addIndex) => (
-                  <ListItem
-                    key={addIndex}
-                    disabled
-                    style={[Styles.px6]}
-                    title={() => (
-                      <Text category="h6">{addition?.catalog?.name}</Text>
-                    )}
-                    description={() => (
-                      <Text category="c2">
-                        @ {currencyFormat(addition?.unit_nett)}
-                      </Text>
-                    )}
-                    accessoryRight={() => (
-                      <View
-                        style={[
-                          Styles.flex,
-                          Styles.alignItemsCenter,
-                          Styles.justifyContentCenter,
-                        ]}
-                      >
-                        <View
-                          style={[
-                            Styles.bgNotification,
-                            Styles.me3,
-                            Styles.rounded3,
-                            Styles.alignItemsCenter,
-                            Styles.justifyContentCenter,
-                            { width: 25, height: 25 },
-                          ]}
-                        >
-                          <Text category="h5">{addition?.quantity}</Text>
-                        </View>
+                  )}
+                  description={() => (
+                    <Text category="c2">
+                      {item?.quantity} x{' '}
+                      {currencyFormat(item?.unit_nett, false)}
+                    </Text>
+                  )}
+                  accessoryRight={() => (
+                    <Text style={[Styles.textEnd]} category="h5">
+                      {currencyFormat(item?.unit_nett * item?.quantity, false)}
+                    </Text>
+                  )}
+                />
+                {item?.additionals?.length > 0 &&
+                  item?.additionals?.map((addition, addIndex) => (
+                    <ListItem
+                      key={addIndex}
+                      disabled
+                      style={{ paddingVertical: 2, paddingHorizontal: 20 }}
+                      title={() => (
+                        <Text category="s1">
+                          + {addition?.catalog?.name}{' '}
+                          {addition?.addon?.type === 'options'
+                            ? ''
+                            : `(${
+                                addition?.quantity > 0 && addition?.quantity
+                              } x ${currencyFormat(
+                                addition?.unit_nett,
+                                false,
+                              )})`}
+                        </Text>
+                      )}
+                      accessoryRight={() => (
                         <Text style={[Styles.textEnd]} category="h5">
                           {currencyFormat(
                             addition?.unit_nett * addition?.quantity,
+                            false,
                           )}
                         </Text>
-                      </View>
-                    )}
-                  />
-                ))}
+                      )}
+                    />
+                  ))}
+              </View>
               <Divider />
             </View>
           ))}
         </View>
+
+        <View>
+          <Text
+            category="s2"
+            style={[
+              Styles.px6,
+              Styles.py4,
+              Styles.textUppercase,
+              Styles.textGrey,
+              { letterSpacing: 1, fontWeight: 'bold' },
+            ]}
+          >
+            INFORMASI Pembayaran
+          </Text>
+          {data?.subtotal_nett > data?.total_charges && (
+            <>
+              <ListItem
+                disabled
+                style={[Styles.px6]}
+                title={() => (
+                  <Text category="p2">Subtotal Before Discount</Text>
+                )}
+                accessoryRight={() => (
+                  <Text style={[Styles.textEnd]} category="h5">
+                    {data?.subtotal_gross > data?.subtotal_nett && (
+                      <Text
+                        category="s2"
+                        style={{
+                          textDecorationLine: 'line-through',
+                        }}
+                      >
+                        {currencyFormat(data?.subtotal_gross, false)}{' '}
+                      </Text>
+                    )}
+                    {currencyFormat(data?.subtotal_nett)}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+
+          {data?.items.reduce((sum, item) => {
+            const qty = item.quantity ?? 1; // default 1 kalau tidak ada quantity
+            const discount = item.discount_value ?? 0;
+            return sum + discount * qty;
+          }, 0) > 0 &&
+            discountMap?.map(d => (
+              <>
+                <ListItem
+                  disabled
+                  style={[Styles.px6]}
+                  title={() => (
+                    <Text category="p2">Discount Category {d?.name}</Text>
+                  )}
+                  accessoryRight={() => (
+                    <Text style={[Styles.textEnd]} category="h5">
+                      -{currencyFormat(d?.subtotal)}
+                    </Text>
+                  )}
+                />
+                <Divider />
+              </>
+            ))}
+
+          {data?.discount_value > 0 && (
+            <>
+              <ListItem
+                disabled
+                style={[Styles.px6]}
+                title={() => <Text category="p2">Discount Order</Text>}
+                accessoryRight={() => (
+                  <Text style={[Styles.textEnd]} category="h5">
+                    -{currencyFormat(data?.discount_value)}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+
+          <ListItem
+            disabled
+            style={[Styles.px6]}
+            title={() => <Text category="p2">Total</Text>}
+            accessoryRight={() => (
+              <Text style={[Styles.textEnd]} category="h5">
+                {currencyFormat(data?.total_charges)}
+              </Text>
+            )}
+          />
+          <Divider />
+
+          {data?.total_payment > 0 && (
+            <>
+              <ListItem
+                disabled
+                style={[Styles.px6]}
+                title={() => (
+                  <Text category="p2">
+                    {data?.payment_method?.name || 'Cash'}
+                  </Text>
+                )}
+                accessoryRight={() => (
+                  <Text style={[Styles.textEnd]} category="h5">
+                    {currencyFormat(data?.total_payment)}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+
+          {data?.total_payment - data?.total_charges > 0 && (
+            <>
+              <ListItem
+                disabled
+                style={[Styles.px6]}
+                title={() => <Text category="p2">Change</Text>}
+                accessoryRight={() => (
+                  <Text style={[Styles.textEnd]} category="h5">
+                    {currencyFormat(data?.total_payment - data?.total_charges)}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+
+          {data?.payment_ref !== '' && (
+            <>
+              <ListItem
+                disabled
+                style={[Styles.px6]}
+                title={() => <Text category="p2">Ref</Text>}
+                accessoryRight={() => (
+                  <Text style={[Styles.textEnd]} category="h5">
+                    {data?.payment_ref}
+                  </Text>
+                )}
+              />
+              <Divider />
+            </>
+          )}
+        </View>
       </Content>
+
       <View
         style={[
           Styles.px6,

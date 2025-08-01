@@ -101,30 +101,65 @@ export function usePrint() {
 
   const printReceipt = useCallback(
     async (data, selectedDevice = null) => {
+      const groupedCategories = items => {
+        const group = {};
+
+        items.forEach(item => {
+          const category = item?.catalog?.category;
+          const discount = item?.discount_value * item?.quantity || 0;
+
+          if (!category) return;
+
+          const id = category.id;
+          const name = category.name;
+
+          if (!group[id]) {
+            group[id] = {
+              id,
+              name,
+              subtotal: 0,
+            };
+          }
+
+          group[id].subtotal += discount;
+        });
+
+        const result = Object.values(group).filter(item => item.subtotal > 0);
+        return result;
+      };
+
+      const categoryDiscounts = groupedCategories(data?.items);
+
       try {
         const device = selectedDevice || (await scanDevices());
         if (!device) return;
 
         const payload =
-          `<img>data:image/png;base64,${base64logo}</img>\n\n` +
+          `<img>data:image/png;base64,${base64logo}</img>\n` +
           `${padLine(
             dateFormat(data?.ordered_at, 'DD-MM-YYYY'),
             dateFormat(data?.ordered_at, 'HH:mm'),
           )}\n` +
-          `${padLine('Transaksi', `No. ${data?.code || '-'}`)}\n` +
+          `${padLine('Transaction', `No. ${data?.code || '-'}`)}\n` +
           `${padLine('Sales Channel', `${data?.channel?.name || '-'}`)}\n` +
-          `${padLine('Kasir', data?.session?.cashier?.name)}\n` +
+          `${padLine('Cashier', data?.session?.cashier?.name)}\n` +
+          (data?.note ? `${padLine('Bill Name', data?.note)}\n` : '') +
+          (data?.membership
+            ? `${padLine('Member', data?.membership?.name)}\n`
+            : '') +
+          (data?.ticket ? `${padLine('Bill Name', data?.ticket)}\n` : '') +
           '--------------------------------\n' +
-          '<b>Deskripsi</b>                  <b>Total</b>\n' +
+          '<b>Description</b>                <b>Total</b>\n' +
           '--------------------------------\n' +
           data?.items
             ?.map(item => {
               const itemLine =
-                `${item?.catalog?.name}\n` +
+                `${item?.catalog?.name || item?.description}\n` +
                 `${padLine(
-                  `@${currencyFormat(item?.unit_nett, false)} x ${
-                    item?.quantity
-                  }`,
+                  `${item?.quantity} x ${currencyFormat(
+                    item?.unit_nett,
+                    false,
+                  )}`,
                   currencyFormat(item?.unit_nett * item?.quantity, false),
                 )}\n`;
 
@@ -133,17 +168,21 @@ export function usePrint() {
                   ? item.additionals
                       .map(
                         addition =>
-                          `   ${addition?.catalog?.name}\n` +
-                          `${padLine(
-                            `   @${currencyFormat(
-                              addition?.unit_nett,
-                              false,
-                            )} x ${addition?.quantity}`,
-                            currencyFormat(
-                              addition?.unit_nett * addition?.quantity,
-                              false,
-                            ),
-                          )}\n`,
+                          `+ ${addition?.catalog?.name}\n` +
+                          (addition?.addon?.type !== 'options'
+                            ? `${padLine(
+                                `${addition?.quantity} x ${currencyFormat(
+                                  addition?.unit_nett,
+                                  false,
+                                )}`,
+                                currencyFormat(
+                                  addition?.quantity > 0
+                                    ? addition?.quantity * addition?.unit_nett
+                                    : item?.quantity * addition?.unit_nett,
+                                  false,
+                                ),
+                              )}\n`
+                            : ''),
                       )
                       .join('')
                   : '';
@@ -152,17 +191,39 @@ export function usePrint() {
             })
             .join('') +
           `--------------------------------\n` +
-          `${padLine('TOTAL', currencyFormat(data?.total_charges, false))}\n` +
+          (data?.subtotal_nett > data?.total_charges
+            ? `${padLine(
+                'Before Discount',
+                currencyFormat(data?.subtotal_nett, false),
+              )}\n`
+            : '') +
+          (categoryDiscounts?.length > 0
+            ? categoryDiscounts?.map(
+                d =>
+                  `${padLine(
+                    `Discount ${d?.name}`,
+                    `-${currencyFormat(d?.subtotal, false)}`,
+                  )}\n`,
+              )
+            : '') +
+          (data?.discount_value > 0
+            ? `${padLine(
+                'Discount Order',
+                `-${currencyFormat(data?.discount_value, false)}`,
+              )}\n`
+            : '') +
+          `--------------------------------\n` +
+          `${padLine('Total', currencyFormat(data?.total_charges, false))}\n` +
           `${padLine(
-            data?.payment_method?.name || 'CASH',
+            data?.payment_method?.name || 'Cash',
             currencyFormat(data?.total_payment, false),
           )}\n` +
           (data?.payment_ref !== ''
-            ? `${padLine('REF', data?.payment_ref)}\n`
+            ? `${padLine('Ref', data?.payment_ref)}\n`
             : '') +
           (data?.total_payment - data?.total_charges > 0
             ? `${padLine(
-                'KEMBALIAN',
+                'Change',
                 currencyFormat(
                   data?.total_payment - data?.total_charges,
                   false,
@@ -183,82 +244,107 @@ export function usePrint() {
       let summary = data?.summary;
       let cash = data?.cash;
 
+      const formatFinishedAt = dateString => {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+
+        // Jika tahun adalah 1 (karena 0001 dianggap 1)
+        if (year === 1) {
+          return dateFormat(new Date(), 'DD-MM-YYYY HH:mm');
+        }
+
+        return dateFormat(date, 'DD-MM-YYYY HH:mm');
+      };
+
       try {
         const device = selectedDevice || (await scanDevices());
         if (!device) return;
 
         const payload =
-          `${centerText('<b># LAPORAN KASIR #</b>')}\n` +
-          `${padLine('Kasir', summary?.cashier?.name)}\n` +
+          '--------------------------------\n' +
+          `${centerText('<b># CASHIER REPORT #</b>')}\n` +
+          '--------------------------------\n' +
+          `${padLine('Cashier', summary?.cashier?.name)}\n` +
           `${padLine(
-            'Mulai Sesi',
+            'Start Session',
             dateFormat(summary?.started_at, 'DD-MM-YYYY HH:mm'),
           )}\n` +
           `${padLine(
-            'Akhir Sesi',
-            dateFormat(new Date(), 'DD-MM-YYYY HH:mm'),
+            'End Session',
+            formatFinishedAt(summary?.finished_at),
+          )}\n` +
+          '--------------------------------\n' +
+          `${centerText('<b>## CASHFLOW SUMMARY ##</b>')}\n` +
+          '--------------------------------\n' +
+          `${padLine(
+            'Starting Cash',
+            currencyFormat(summary?.cash_started, false),
+          )}\n` +
+          `${padLine('Ending Cash', currencyFormat(cash, false))}\n` +
+          `${padLine(
+            'Expected Cash',
+            currencyFormat(summary?.cash_due, false),
           )}\n` +
           `${padLine(
-            'Item Terjual',
-            currencyFormat(summary?.total_cup, false),
+            'Topup Cash',
+            currencyFormat(summary?.cash_topup, false),
           )}\n` +
-          (summary?.catalog_solds && summary?.catalog_solds !== null
-            ? `--------------------------------\n` +
-              `${centerText('<b>## ITEM TERJUAL ##</b>')}\n` +
-              `--------------------------------\n` +
-              summary?.catalog_solds
-                ?.map(
-                  s =>
-                    `${padLine(
-                      s?.catalog_name + ' ' + '(' + `${s?.quantity}` + ')',
-                      currencyFormat(s?.subtotal),
-                    )}\n`,
-                )
-                .join('')
-            : '') +
-          (summary?.sales_channels && summary?.sales_channels !== null
-            ? `--------------------------------\n` +
-              `${centerText('<b>## RINGKASAN ORDER ##</b>')}\n` +
-              `--------------------------------\n` +
-              summary?.sales_channels
-                ?.map(
-                  s =>
-                    `${padLine(
-                      s?.channel_name +
-                        ' ' +
-                        '(' +
-                        `${s?.transaction_count}` +
-                        ')',
-                      currencyFormat(s?.subtotal),
-                    )}\n`,
-                )
-                .join('')
-            : '') +
+          `${padLine(
+            'Total Bill Payments',
+            currencyFormat(summary?.bill_payment, false),
+          )}\n` +
+          `${padLine(
+            'Total Sales',
+            currencyFormat(summary?.summary_order?.total_nett, false),
+          )}\n` +
+          `${padLine(
+            'Total Discount',
+            currencyFormat(summary?.summary_order?.total_discount, false),
+          )}\n` +
+          `${padLine(
+            'After Discount',
+            currencyFormat(summary?.summary_order?.total_charges, false),
+          )}\n` +
+          `${padLine(
+            'Total Bill',
+            currencyFormat(summary?.summary_order?.total_openbill, false),
+          )}\n` +
+          `${padLine(
+            'Total Omzet',
+            currencyFormat(
+              summary?.summary_order?.total_openbill +
+                summary?.summary_order?.total_nett,
+              false,
+            ),
+          )}\n` +
           (summary?.cash_payments && summary?.cash_payments !== null
             ? `--------------------------------\n` +
-              `${centerText('<b>## RINGKASAN PEMBAYARAN ##</b>')}\n` +
+              `${centerText('<b>## PAYMENTS ##</b>')}\n` +
               `--------------------------------\n` +
               summary?.cash_payments
                 ?.map(
                   s =>
                     `${padLine(
-                      s?.payment_name ? s?.payment_name : 'TUNAI',
-                      currencyFormat(s?.subtotal),
+                      s?.payment_name ? s?.payment_name : 'Cash',
+                      currencyFormat(s?.subtotal, false),
                     )}\n`,
                 )
                 .join('')
             : '') +
-          `--------------------------------\n` +
-          `${centerText('<b>## MANAJEMEN KAS ##</b>')}\n` +
-          `--------------------------------\n` +
-          `${padLine('Kas Awal', currencyFormat(summary?.cash_started))}\n` +
-          `${padLine(
-            'Transaksi Tunai',
-            currencyFormat(summary?.cash_due - summary?.cash_started),
-          )}\n` +
-          `${padLine('Kas Seharusnya', currencyFormat(summary?.cash_due))}\n` +
-          `${padLine('Kas Akhir', currencyFormat(cash))}\n` +
-          `${padLine('Selisih', currencyFormat(cash - summary?.cash_due))}\n`;
+          (summary?.category_solds && summary?.category_solds !== null
+            ? `--------------------------------\n` +
+              `${centerText('<b>## CATEGORY SOLD ##</b>')}\n` +
+              `--------------------------------\n` +
+              summary?.category_solds
+                ?.map(
+                  s =>
+                    `${padLine(
+                      s?.name + ' ' + '(' + `${s?.quantity}` + ')',
+                      currencyFormat(s?.total_charges, false),
+                    )}\n`,
+                )
+                .join('')
+            : '');
         await doPrint(device, payload);
         return true;
       } catch (err) {

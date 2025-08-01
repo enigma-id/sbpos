@@ -1,3 +1,4 @@
+export { default as Accordion } from './accordion';
 export { default as Container } from './container';
 export { default as Content } from './content';
 export { default as Loading } from './loading';

@@ -96,7 +96,6 @@ const SigninScreen = () => {
               caption={() => renderCaption(FormState?.errors?.username)}
               status={FormState?.errors?.username ? 'danger' : 'basic'}
               onChangeText={v => setUsername(v)}
-              keyboardType="phone-pad"
             />
             <Input
               style={[Styles.pb3]}
@@ -118,23 +117,6 @@ const SigninScreen = () => {
               returnKeyType="done"
               keyboardType="number-pad"
             />
-
-            {/* <Pressable
-              style={[
-                Styles.flex,
-                Styles.alignItemsEnd,
-                Styles.justifyContentEnd,
-              ]}
-              onPress={() => router?.navigate('reset')}
-            >
-              <Text
-                category="p1"
-                status="control"
-                style={[Styles.mt1, Styles.textCapitalize, Styles.inputTitle]}
-              >
-                Lupa password ?
-              </Text>
-            </Pressable> */}
             <Button
               style={[Styles.mt5]}
               onPress={$handleSubmit}

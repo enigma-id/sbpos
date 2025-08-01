@@ -1,28 +1,39 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { CommonActions, useNavigation } from '@react-navigation/native';
 
-import { resetCart } from './slice';
-import { useCheckoutMutation, useGetMethodQuery } from './action';
-import { $failure } from '../form/action';
+import { useCheckoutMutation, useLazyGetMethodQuery } from './action';
+import {
+  removeItem,
+  resetCart,
+  updateCategoryDiscount,
+  updateCartDiscount,
+  changeItem,
+  addItem,
+} from './slice';
 import { useLazyGetCatalogDetailQuery } from '../catalog/action';
-import { clearSelectedChannel } from '../sales/channel/slice';
+import { $failure } from '../form/action';
 
 const useCart = catalog_id => {
   const dispatch = useDispatch();
   const router = useNavigation();
   const state = router.getState();
 
-  const SalesChannel = useSelector(state => state.SalesChannel);
+  const selectedChannel = useSelector(
+    state => state?.SalesChannel?.selectedChannel,
+  );
+  const CartState = useSelector(state => state?.Cart);
 
-  const [triggerDetail, detailResult] = useLazyGetCatalogDetailQuery();
-  const { data: method, isLoading, error } = useGetMethodQuery();
+  const [triggerCatalogDetail, catalogDetailResult] =
+    useLazyGetCatalogDetailQuery();
   const [checkoutMutation, checkoutResult] = useCheckoutMutation();
+  const [triggerPaymentMethod] = useLazyGetMethodQuery();
 
-  // Get all items in cart
-  const cartItems = useSelector(state => state?.Cart.items);
+  // All cart items
+  const cartItems = useSelector(state => state?.Cart?.items?.list || []);
 
-  // Check if item is already in cart
+  // Cek apakah item sudah ada
   const existingIndex = cartItems.findIndex(item => item?.id === catalog_id);
   const isItemInCart = existingIndex >= 0;
   const existingItem = isItemInCart ? cartItems[existingIndex] : null;
@@ -39,20 +50,14 @@ const useCart = catalog_id => {
   };
 
   const isCheckoutRunning = useRef(false);
-
   const checkout = async data => {
-    if (isCheckoutRunning.current) {
-      return;
-    }
-
+    if (isCheckoutRunning.current) return;
     isCheckoutRunning.current = true;
 
     try {
       const res = await checkoutMutation(data).unwrap();
-
       if (res?.status === 'success') {
         dispatch(resetCart());
-        dispatch(clearSelectedChannel());
 
         router.navigate('confirmation', { order: res?.data });
       }
@@ -63,34 +68,145 @@ const useCart = catalog_id => {
     }
   };
 
-  // const method = async () => {
-  //   try {
-  //     await triggerMethod().unwrap();
-  //   } catch (error) {}
-  // };
+  const getPaymentMethod = async () => {
+    const req = await triggerPaymentMethod().unwrap();
+    const data = req?.data || [];
+    return [{ id: 0, name: 'Cash' }, ...data];
+  };
 
-  // Only trigger once on mount
+  const add = catalog => {
+    const cloned = { ...catalog };
+    dispatch(addItem(cloned));
+  };
+
+  const remove = async index => {
+    dispatch(removeItem(index));
+  };
+
+  const change = async (key, catalog) => {
+    dispatch(changeItem({ key, catalog }));
+  };
+
+  const onChangeDiscount = (categoryId, field, value) => {
+    const cat = CartState?.discount?.category?.find(c => c.id === categoryId);
+    if (!cat) return;
+
+    const discount_type = field === 'discount_type' ? value : cat.discount_type;
+
+    if (field === 'discount_type') {
+      dispatch(
+        updateCategoryDiscount({
+          id: categoryId,
+          discount_type: value,
+          discount_value: 0,
+        }),
+      );
+      return;
+    }
+
+    if (field === 'discount_value' && value === '') {
+      dispatch(
+        updateCategoryDiscount({
+          id: categoryId,
+          discount_type,
+          discount_value: 0,
+        }),
+      );
+      return;
+    }
+
+    let parsed = parseFloat(value.toString().replace(',', '.'));
+    if (isNaN(parsed)) parsed = 0;
+
+    if (discount_type === 'percentage') {
+      parsed = Math.min(parsed, 100);
+    }
+
+    if (discount_type === 'nominal') {
+      const items = CartState?.items?.list ?? [];
+      const item = items.find(i => i.category?.id === categoryId);
+
+      if (item) parsed = Math.min(parsed, item.subtotal);
+    }
+
+    dispatch(
+      updateCategoryDiscount({
+        id: categoryId,
+        discount_type,
+        discount_value: parsed,
+      }),
+    );
+  };
+
+  const onChangeCartDiscount = (field, value) => {
+    const discount_type =
+      field === 'discount_type' ? value : CartState?.discount?.cart?.type;
+
+    if (field === 'discount_type') {
+      dispatch(
+        updateCartDiscount({
+          discount_type: value,
+          discount_value: 0,
+        }),
+      );
+      return;
+    }
+
+    if (field === 'discount_value' && value === '') {
+      dispatch(
+        updateCartDiscount({
+          discount_type,
+          discount_value: 0,
+        }),
+      );
+      return;
+    }
+
+    let parsed = parseFloat(value.toString().replace(',', '.'));
+    if (isNaN(parsed)) parsed = 0;
+
+    if (discount_type === 'percentage') {
+      parsed = Math.min(parsed, 100);
+    }
+
+    if (discount_type === 'nominal') {
+      parsed = Math.min(parsed, CartState?.meta?.subtotal || 0);
+    }
+
+    dispatch(
+      updateCartDiscount({
+        discount_type,
+        discount_value: parsed,
+      }),
+    );
+  };
+
   useEffect(() => {
     if (catalog_id) {
-      triggerDetail({
+      triggerCatalogDetail({
         id: catalog_id,
-        channel_id: SalesChannel?.selectedChannel?.id,
+        channel_id: selectedChannel?.id,
       });
     }
-  }, [catalog_id]);
+  }, [catalog_id, selectedChannel]);
 
   return {
-    catalogDetail: detailResult?.data?.data,
-    isLoading: detailResult.isFetching,
-    error: detailResult.error,
+    catalogDetail: catalogDetailResult?.data?.data,
+    isLoading: catalogDetailResult.isFetching,
+    error: catalogDetailResult.error,
     isItemInCart,
     existingItem,
     existingIndex,
-    paymentMethod: method?.data,
+    getPaymentMethod,
     checkout,
     checkoutResult,
     reset,
     cartItems,
+    add,
+    remove,
+    change,
+    onChangeDiscount,
+    onChangeCartDiscount,
   };
 };
 

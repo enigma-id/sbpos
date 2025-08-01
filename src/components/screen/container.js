@@ -1,7 +1,6 @@
 import React from 'react';
 import { KeyboardAvoidingView, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Styles } from '../theme/styles';
 import colors from '../theme/colors';
 
 const Container = props => {

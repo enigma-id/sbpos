@@ -25,7 +25,7 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Custom baseQuery with dev logging
 export const baseQuery = async (args, api, extraOptions) => {
-  // const result = await rawBaseQuery(args, api, extraOptions);
+  const result = await rawBaseQuery(args, api, extraOptions);
   if (__DEV__) {
     const url = typeof args === 'string' ? args : args.url;
     const method = typeof args === 'object' ? args.method : undefined;
@@ -56,11 +56,11 @@ export const baseQuery = async (args, api, extraOptions) => {
         body,
       );
     }
-    // console.log(
-    //   '%c[RTKQ] Response:',
-    //   'color: #fff; background: #5bc0de; font-weight: bold; padding:2px 6px; border-radius:3px;',
-    //   result,
-    // );
+    console.log(
+      '%c[RTKQ] Response:',
+      'color: #fff; background: #5bc0de; font-weight: bold; padding:2px 6px; border-radius:3px;',
+      result,
+    );
   }
-  return rawBaseQuery(args, api, extraOptions);
+  return result;
 };

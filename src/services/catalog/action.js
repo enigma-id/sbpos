@@ -7,7 +7,7 @@ export const catalogApi = createApi({
   endpoints: builder => ({
     // ✅ Dijalankan manual saat user pilih produk
     getCatalogPricing: builder.query({
-      query: ({ page = 1, limit = 20, ...params }) => ({
+      query: ({ page = 1, limit = 100000, ...params }) => ({
         url: '/catalog/pricing',
         method: 'GET',
         params: {
@@ -41,6 +41,6 @@ export const catalogApi = createApi({
 // ⬇️ Export lazy hooks (sesuai strategi yang kita sepakati)
 export const {
   useLazyGetCatalogPricingQuery,
-  useGetCategoriesQuery,
+  useLazyGetCategoriesQuery,
   useLazyGetCatalogDetailQuery,
 } = catalogApi;

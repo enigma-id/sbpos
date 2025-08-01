@@ -1,12 +1,19 @@
-import {Button, Text} from '@ui-kitten/components';
+import { Button, Input } from '@ui-kitten/components';
 import React from 'react';
-import {View, StyleSheet} from 'react-native';
-import {Styles} from '../theme/styles';
+import { View } from 'react-native';
+import { Styles } from '../theme/styles';
 
-const QuantityStepper = ({value, onChange}) => {
+const QuantityStepper = ({ value, onChange, small }) => {
   const increment = () => onChange(value + 1);
-  const decrement = () => {
-    onChange(value - 1);
+  const decrement = () => onChange(Math.max(0, value - 1));
+
+  const handleInputChange = nextVal => {
+    const numeric = parseInt(nextVal.replace(/[^0-9]/g, ''), 10);
+    if (!isNaN(numeric)) {
+      onChange(numeric);
+    } else {
+      onChange(0);
+    }
   };
 
   return (
@@ -17,41 +24,42 @@ const QuantityStepper = ({value, onChange}) => {
         Styles.justifyContentBetween,
         Styles.border,
         Styles.rounded4,
-        {minWidth: 120},
-      ]}>
+        { width: small ? 120 : 200 },
+      ]}
+    >
       <Button
-        size="small"
+        size={small ? 'tiny' : 'small'}
         onPress={decrement}
         style={[Styles.rounded4]}
         status="info"
-        disabled={value === 0}>
+        disabled={value === 0}
+      >
         -
       </Button>
 
-      <Text category="h4">{value}</Text>
+      <Input
+        value={value.toString()}
+        keyboardType="number-pad"
+        onChangeText={handleInputChange}
+        style={{
+          borderWidth: 0,
+          backgroundColor: 'transparent',
+          textAlign: 'center',
+        }}
+        size="small"
+        textStyle={{ textAlign: 'center', fontSize: small ? 14 : 16 }}
+      />
 
       <Button
-        size="small"
+        size={small ? 'tiny' : 'small'}
         status="info"
         onPress={increment}
-        style={[Styles.rounded4]}>
+        style={[Styles.rounded4]}
+      >
         +
       </Button>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    overflow: 'hidden',
-    minWidth: 130,
-  },
-});
 
 export default QuantityStepper;

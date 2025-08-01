@@ -25,7 +25,7 @@ import {
   Text,
 } from '@ui-kitten/components';
 
-import { Container, EmptyScreen, Loading } from '../../../components/screen';
+import { Container, EmptyScreen } from '../../../components/screen';
 
 import useSalesChannel from '../../../services/sales/channel/hook';
 import useCatalog from '../../../services/catalog/hooks';
@@ -42,15 +42,14 @@ const CatalogScreen = () => {
   const { summary, summaryResult } = useSession();
 
   const {
-    catalog,
-    isLoadingCatalog,
-    isRefreshing,
-    loadNextPage,
     refreshCatalog,
+    catalog,
     categories,
     selectedCategory,
-    refetchCategory,
     onSelectCategory,
+    onSearch,
+    searchTerm,
+    isLoading,
   } = useCatalog();
 
   const bottomSheetRef = React.useRef(null);
@@ -146,9 +145,6 @@ const CatalogScreen = () => {
                 onSelectCategory(categories[index.row - 1]);
               }
             }}
-            onFocus={() => {
-              refetchCategory();
-            }}
           >
             <SelectItem title="Semua Kategori" />
             {categories?.map(item => (
@@ -159,7 +155,7 @@ const CatalogScreen = () => {
         <View>
           <TouchableOpacity
             onPress={() =>
-              router.navigate('transaction', {
+              router.navigate('transaction/list', {
                 id: summaryResult?.data?.data?.id,
               })
             }
@@ -168,85 +164,82 @@ const CatalogScreen = () => {
           </TouchableOpacity>
         </View>
       </View>
-      {isLoadingCatalog ? (
-        <Loading />
-      ) : (
-        <List
-          data={catalog}
-          keyExtractor={item => item.id?.toString()}
-          contentContainerStyle={[
-            Styles.px6,
-            Styles.py4,
-            { justifyContent: 'center' },
-          ]}
-          columnWrapperStyle={{ gap: 10, marginBottom: 10 }}
-          renderItem={({ item }) => (
-            <TouchableNativeFeedback
-              key={item?.id}
-              background={TouchableNativeFeedback.Ripple('#dbdbdb')}
-              onPress={() =>
-                router.navigate('cart', {
-                  catalog: item,
-                })
-              }
-              useForeground={true}
+
+      <List
+        data={catalog}
+        keyExtractor={item => item.id?.toString()}
+        contentContainerStyle={[
+          Styles.px6,
+          Styles.py4,
+          { justifyContent: 'center' },
+        ]}
+        columnWrapperStyle={{ gap: 10, marginBottom: 10 }}
+        renderItem={({ item }) => (
+          <TouchableNativeFeedback
+            key={item?.id}
+            background={TouchableNativeFeedback.Ripple(
+              'rgba(0,0,0,0.1)',
+              false,
+            )}
+            onPress={() =>
+              router.navigate('cart', {
+                catalog: item,
+              })
+            }
+            useForeground={true}
+          >
+            <View
+              style={[
+                {
+                  width: (DEVICE_WIDTH - 13 * (2 * 2)) / 2,
+                  borderRadius: 5,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 2,
+                  overflow: 'hidden',
+                },
+                Styles.bgWhite,
+                Styles.alignItemsCenter,
+                Styles.justifyContentCenter,
+              ]}
             >
-              <View
-                style={[
-                  {
-                    width: (DEVICE_WIDTH - 13 * (2 * 2)) / 2,
-                    borderRadius: 5,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 2,
-                    overflow: 'hidden',
-                  },
-                  Styles.bgWhite,
-                  Styles.alignItemsCenter,
-                  Styles.justifyContentCenter,
-                ]}
-              >
-                {item?.image && (
-                  <Image
-                    source={{ uri: item?.image }}
-                    // source={require('../../../assets/logo.png')}
-                    style={{ width: '100%', height: 80, marginBottom: 8 }}
-                  />
-                )}
-                <View style={[Styles.px3, Styles.pb3]}>
-                  <Text
-                    category="h5"
-                    numberOfLines={2}
-                    style={[Styles.textCenter]}
-                  >
-                    {item?.name}
-                  </Text>
-                  <Text
-                    category="label"
-                    style={[Styles.textCenter]}
-                    status="primary"
-                  >
-                    {currencyFormat(item?.unit_price || 0)}
-                  </Text>
-                </View>
+              {item?.image && (
+                <Image
+                  source={{ uri: item?.image }}
+                  // source={require('../../../assets/logo.png')}
+                  style={{ width: '100%', height: 80, marginBottom: 8 }}
+                />
+              )}
+              <View style={[Styles.px3, Styles.pb3]}>
+                <Text
+                  category="h5"
+                  numberOfLines={2}
+                  style={[Styles.textCenter]}
+                >
+                  {item?.name || '{custom catalog}'}
+                </Text>
+                <Text
+                  category="label"
+                  style={[Styles.textCenter]}
+                  status="primary"
+                >
+                  {currencyFormat(
+                    item?.unit_price,
+                    undefined,
+                    item?.is_custom === 1 && '{custom price}',
+                  )}
+                </Text>
               </View>
-            </TouchableNativeFeedback>
-          )}
-          onEndReached={loadNextPage}
-          onEndReachedThreshold={0.4}
-          onRefresh={refreshCatalog}
-          refreshing={isRefreshing}
-          numColumns={2}
-          ListFooterComponent={
-            isLoadingCatalog && catalog?.length > 0 ? (
-              <ActivityIndicator style={{ marginVertical: 16 }} />
-            ) : null
-          }
-          ListEmptyComponent={() => <EmptyScreen />}
-        />
-      )}
+            </View>
+          </TouchableNativeFeedback>
+        )}
+        onRefresh={refreshCatalog}
+        refreshing={isLoading}
+        numColumns={2}
+        ListEmptyComponent={() => <EmptyScreen />}
+      />
       <View
         style={[
           Styles.flex,
@@ -270,14 +263,15 @@ const CatalogScreen = () => {
         </View>
         <View style={{ width: DEVICE_WIDTH / 1.7 }}>
           <Button
-            disabled={Cart?.count === 0}
+            disabled={Cart?.items?.count === 0}
             size="small"
             accessoryRight={props => (
               <Icon {...props} name="arrow-forward-outline" />
             )}
             onPress={() => router.navigate('checkout')}
           >
-            Total ({Cart?.count}) = {currencyFormat(Cart?.subtotal)}
+            Total ({Cart?.items?.count}) ={' '}
+            {currencyFormat(Cart?.meta?.grand_total)}
           </Button>
         </View>
       </View>

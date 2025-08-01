@@ -21,12 +21,13 @@ const PaymentScreen = props => {
   const [paymentRef, setPaymentRef] = React.useState('');
   const [totalPaymentStr, setPaymentStr] = React.useState('');
   const [totalPayment, setTotalPayment] = React.useState(0);
+  const [note, setNote] = React.useState('');
   const [moneyList, setMoneyList] = React.useState([]);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
-    if (payment?.id === 'cash') {
-      const list = cashList(Cart?.subtotal);
+    if (payment?.id === 0) {
+      const list = cashList(Cart?.meta?.grand_total);
       setMoneyList(list);
     }
   }, [Cart, payment]);
@@ -48,16 +49,64 @@ const PaymentScreen = props => {
   };
 
   const generatePayload = () => {
-    return {
+    const items = (Cart?.items?.list ?? []).map(item => {
+      const base = {
+        catalog_id: item.catalog_id,
+        quantity: item.quantity,
+      };
+
+      if (item?.additionals_flat?.length > 0) {
+        base.additionals = item.additionals_flat;
+      }
+
+      if (item?.is_custom === 1) {
+        base.description = item.name;
+        base.unit_price = item.unit_price;
+      }
+
+      return base;
+    });
+
+    const discount_categories = (Cart?.discount?.category ?? [])
+      .filter(
+        cat =>
+          cat?.discount_value > 0 &&
+          ['percentage', 'nominal'].includes(cat?.discount_type),
+      )
+      .map(cat => ({
+        category_id: cat.id,
+        ...(cat.discount_type === 'percentage'
+          ? { discount_percentage: cat.discount_value }
+          : { discount_value: cat.discount_value }),
+      }));
+
+    const payload = {
       channel_id: Channel?.selectedChannel?.id,
-      status: 'completed',
-      payment_method_id: payment?.id === 'cash' ? 0 : payment?.id,
-      payment_ref: payment?.id === 'cash' ? '' : paymentRef,
-      note: '',
-      items: Cart?.items,
+      payment_method_id: payment?.id,
+      payment_ref: payment?.id === 0 ? '' : paymentRef,
+      note: note ?? '',
+      items,
       total_payment:
-        payment?.id === 'cash' ? totalPayment || 0 : Cart?.subtotal || 0,
+        payment?.id === 0 ? totalPayment || 0 : Cart?.meta?.grand_total || 0,
     };
+
+    if (Cart?.meta?.customer) {
+      payload.membership_id = Cart.meta.customer.id;
+    }
+
+    if (Cart?.discount?.cart?.type === 'percentage') {
+      payload.discount_percentage = Cart.discount.cart.value;
+    }
+
+    if (Cart?.discount?.cart?.type === 'nominal') {
+      payload.discount_value = Cart.discount.cart.value;
+    }
+
+    if (discount_categories.length > 0) {
+      payload.discount_categories = discount_categories;
+    }
+
+    return payload;
   };
 
   const handleSubmit = async () => {
@@ -75,7 +124,28 @@ const PaymentScreen = props => {
     <Container>
       <Content onRefresh={null}>
         <View style={[Styles.px6, Styles.py4]}>
-          {payment?.id === 'cash' ? (
+          <Input
+            size="large"
+            value={note}
+            style={[Styles.pb4]}
+            label={() => (
+              <Text
+                category="s2"
+                style={[
+                  Styles.textUppercase,
+                  Styles.textGrey,
+                  Styles.pb4,
+                  { letterSpacing: 1, fontWeight: 'bold' },
+                ]}
+              >
+                Customer
+              </Text>
+            )}
+            status={FormState?.errors?.note ? 'danger' : 'basic'}
+            onChangeText={v => setNote(v)}
+          />
+
+          {payment?.id === 0 ? (
             <>
               <Text
                 category="s2"
@@ -141,7 +211,7 @@ const PaymentScreen = props => {
                   <Button
                     size="tiny"
                     status="primary"
-                    onPress={() => onChange(Cart?.subtotal)}
+                    onPress={() => onChange(Cart?.meta?.grand_total)}
                   >
                     Uang Pas
                   </Button>

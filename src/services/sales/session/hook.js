@@ -12,6 +12,7 @@ import { checkSession, invalidateSession } from './slice';
 import { resetCart } from '../../cart/slice';
 import { clearSelectedChannel } from '../channel/slice';
 import { useNavigation } from '@react-navigation/native';
+import { logout } from '../../auth/slice';
 
 const useSession = () => {
   const dispatch = useDispatch();
@@ -47,6 +48,8 @@ const useSession = () => {
       await endMutation(data).unwrap();
     } catch (error) {
       dispatch($failure(error));
+    } finally {
+      dispatch(logout());
     }
   };
 

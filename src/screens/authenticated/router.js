@@ -14,6 +14,8 @@ import ConfirmationScreen from './pos/confirmation';
 import ProfileScreen from './profile';
 import SessionScreen from './transaction/session';
 import WebScreen from './home/webview';
+import DiscountScreen from './pos/discount';
+import ListTransactionScreen from './transaction/list';
 
 const { Navigator, Screen, Group } = createNativeStackNavigator();
 
@@ -102,6 +104,17 @@ export const AuthorizedRouter = () => {
           }}
         />
         <Screen
+          name="checkout/discount"
+          component={DiscountScreen}
+          options={{
+            title: 'Discount',
+            animationDuration: 10,
+            headerTitleStyle: {
+              ...Styles.fs3,
+            },
+          }}
+        />
+        <Screen
           name="payment"
           component={PaymentScreen}
           options={{
@@ -143,6 +156,17 @@ export const AuthorizedRouter = () => {
           }}
         />
         <Screen
+          name="transaction/list"
+          component={ListTransactionScreen}
+          options={{
+            title: 'Transaksi Penjualan',
+            animationDuration: 10,
+            headerTitleStyle: {
+              ...Styles.fs3,
+            },
+          }}
+        />
+        <Screen
           name="transaction/detail"
           getId={({ params }) => params.id}
           component={DetailScreen}
@@ -154,6 +178,7 @@ export const AuthorizedRouter = () => {
             },
           }}
         />
+
         <Screen
           name="profile"
           component={ProfileScreen}
